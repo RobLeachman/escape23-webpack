@@ -1,5 +1,6 @@
 const path = require('path');
- 
+
+// https://www.emanueleferonato.com/2021/08/03/working-with-phaser-typescript-and-webpack-step-1/
 module.exports = {
     entry: {
         // this is our entry point, the main JavaScript file
