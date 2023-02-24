@@ -44,18 +44,6 @@ module.exports = {
                     from: 'index.html',
                     context: 'src/'
                 },
-
-                { 
-                    // previous efforts...
-                    from: 'sizeTest.html',
-                    context: 'src/'
-                }, 
-                { 
-                    // previous efforts...
-                    from: 'inv0.html',
-                    context: 'src/'
-                },                               
-
                 {
                     // all the sprites...
                     from: 'assets/sprites/*',

@@ -6,7 +6,7 @@
   "scripts": {
     "development": "webpack serve --open --config webpack.development.js",
     "distribution": "webpack --config webpack.distribution.js"
-  },  
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/RobLeachman/escape23.git"

@@ -297,7 +297,7 @@ backButton.events.onInputDown.add(listener, this);
             'background-color': '#000',
             'width': '520px',
             'height': '100px',
-            'font': '48px Arial',
+            'font': '40px Arial',
             'color': 'white'
 
         };
@@ -376,11 +376,11 @@ backButton.events.onInputDown.add(listener, this);
                 rightButton.setVisible(false);
                 currentWall = viewWall;
                 updateWall = false;
-                var sentence = "Nice job slugger!\nTry it again for the bonus? Reload page";
+                var sentence = "Nice job slugger!\nTry it again for the bonus?\nJust reload the page";
                 if (didBonus) {
                     var bonus = this.add.image(360, 800, "iconDonutPlated")
                     bonus.setScale(3);
-                    sentence = "You did it :) Thanks for testing!!"
+                    sentence = "You did it :)\nThanks for testing!";
                 } else {
                     failed.setVisible(true);
                     failed.setDepth(400);
