@@ -80,6 +80,10 @@ export default class Slots {
         this.selectedSecondIcon.setX(1000);
     }
 
+    clearSelect() {
+        this.selectedIcon.setX(1000);        
+    }
+
     clearSecondSelect() {
         this.selectedSecondIcon.setX(1000);        
     }

@@ -1,5 +1,5 @@
 import 'phaser';
-
+// CHECKING IN THIS .JS CALLED .TS TO PROVIDE EASY COMPARE LATER!
 import Slots from "./objects/slots.js"
 
 var currentWall = -1;
@@ -14,6 +14,10 @@ const i = new Array();
 var viewWall = 2;
 var previousWall = -1;
 
+var wall1;
+var wall2;
+var wall3;
+var wall4;
 var invBar, leftButton, rightButton, backButton, plusButton, failed;
 var takeItemMask;
 var viewTableMask;

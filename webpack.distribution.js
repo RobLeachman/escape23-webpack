@@ -9,8 +9,10 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 module.exports = {
     entry: {
  
-        // this is our entry point, the main JavaScript file
-        app: './src/main.js',
+// this is our entry point, the main JavaScript file
+//  app: './src/main.js',
+        // this is our entry point, the main Typescript file
+        app: './src/main.ts',        
     },
     output: {
  
@@ -56,5 +58,20 @@ module.exports = {
                 }                                 
             ]
         })
-    ]
+    ],
+
+    // list of extensions to resolve, in resolve order
+    resolve: {
+        extensions: [ '.ts', '.tsx', '.js' ]
+    },
+ 
+    // loader to handle TypeScript file type
+    module: {
+        rules: [{
+            test: /\.tsx?$/,
+            use: 'ts-loader',
+            exclude: /node_modules/
+        }]
+    }
+
 };
