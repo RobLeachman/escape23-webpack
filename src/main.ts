@@ -1,5 +1,5 @@
 import 'phaser';
-// CHECKING IN THIS .JS CALLED .TS TO PROVIDE EASY COMPARE LATER!
+
 import Slots from "./objects/slots.js"
 
 var currentWall = -1;
@@ -14,16 +14,18 @@ const i = new Array();
 var viewWall = 2;
 var previousWall = -1;
 
-var wall1;
-var wall2;
-var wall3;
-var wall4;
-var invBar, leftButton, rightButton, backButton, plusButton, failed;
-var takeItemMask;
-var viewTableMask;
-var viewDoorMask;
-var objectMask;
-var keyMask;
+var invBar: Phaser.GameObjects.Sprite;
+var leftButton: Phaser.GameObjects.Sprite;
+var rightButton: Phaser.GameObjects.Sprite;
+var backButton: Phaser.GameObjects.Sprite;
+var plusButton: Phaser.GameObjects.Sprite;
+var failed: Phaser.GameObjects.Sprite;
+
+var takeItemMask: Phaser.GameObjects.Sprite;
+var viewTableMask: Phaser.GameObjects.Sprite;
+var viewDoorMask: Phaser.GameObjects.Sprite;
+var objectMask: Phaser.GameObjects.Sprite;
+var keyMask: Phaser.GameObjects.Sprite;
 
 var tableState = 0;
 var updateWall = false;
@@ -53,7 +55,6 @@ class PlayGame extends Phaser.Scene {
         this.load.image('myViewport', 'assets/backgrounds/viewport.png');
         viewportPointer = this.load.image('clckrLoc', 'assets/sprites/pointer.png');
         viewportPointerClick = this.load.image('clckrClk', 'assets/sprites/pointerClicked.png');
-        myViewport = this.add.image(0, 0, 'myViewport').setOrigin(0, 0);
 
         this.load.image('wall1', 'assets/backgrounds/invroom - room - empty.png');
         this.load.image('wall2', 'assets/backgrounds/invroom - room - west.png');
@@ -159,11 +160,16 @@ class PlayGame extends Phaser.Scene {
     }
 
     create() {
+// Roll the recorder...        
+        //myViewport = this.add.image(0, 0, 'myViewport').setOrigin(0, 0);        
 // Whoops, forgot to commit MVP! Recorder is next...        
 //this.input.setTopOnly(false);
 
+/* TS 
         slots = new Slots(this, "iconEmpty", "iconSelected", "iconSelectedSecond");
         slots.currentMode = "room";
+*/        
+
         invBar = this.add.sprite(0, 1040, 'inventory').setOrigin(0, 0);
         leftButton = this.add.sprite(80, 950, 'left');
         rightButton = this.add.sprite(640, 950, 'right');
@@ -172,6 +178,7 @@ class PlayGame extends Phaser.Scene {
         failed = this.add.sprite(80, 950, 'fail');
 
         //  Enables all kind of input actions on this image (click, etc)
+        // I tried this for recorder, no dice.
         /*
 backButton.inputEnabled = true;
 this.position = new Phaser.Point();
@@ -185,19 +192,27 @@ backButton.events.onInputDown.add(listener, this);
                 viewWall = 0;
         });
         leftButton.on('pointerdown', () => {
+            console.log("TS left");
             viewWall--;
             if (viewWall < 0)
                 viewWall = 3;
         });
+
         backButton.on('pointerdown', () => {
             if (viewWall == 4)
                 viewWall = 0;
             else
                 viewWall = previousWall;
-            slots.clearSecondSelect();
+// TS                
+//            slots.clearSecondSelect();
         });
+
+
         plusButton.on('pointerdown', () => {
+            console.log("plus button TS");
             plusButton.setVisible(false);
+/*            
+
             var combineFailed = true;
 
             // could sort the names and skip the duplicate code...
@@ -234,14 +249,17 @@ backButton.events.onInputDown.add(listener, this);
                 slots.inventoryViewAlt = altObj[goodNew];
                 slots.otherViewObj = "";
             }
+*/            
         });
 
-        takeItemMask = this.add.image(155, 530, 'takeMask').setOrigin(0, 0);
+
+        takeItemMask = this.add.sprite(155, 530, 'takeMask').setOrigin(0, 0);
         // Add item to inventory list when picked up. In this test it's easy, just 3 stacked items.
         // Add it and then remove from view and flag for an update.
         takeItemMask.on('pointerdown', () => {            
             if (tableState < 3) {
-                slots.addIcon(this, icons[tableState].toString(), obj[tableState], altObj[tableState]); // TODO: get name from sprite
+//TS                
+//                slots.addIcon(this, icons[tableState].toString(), obj[tableState], altObj[tableState]); // TODO: get name from sprite
                 this.add.sprite(190, 560, closeView[tableState]).setOrigin(0, 0);
                 tableState++;
 
@@ -249,15 +267,19 @@ backButton.events.onInputDown.add(listener, this);
             }
         });
 
-        viewTableMask = this.add.image(440, 615, 'tableMask').setOrigin(0, 0);
+        viewTableMask = this.add.sprite(440, 615, 'tableMask').setOrigin(0, 0);
         viewTableMask.on('pointerdown', () => {
+            console.log("view table!")
             if (viewWall == 0)
                 viewWall = 4;
 
         });
+       
 
-        viewDoorMask = this.add.image(274, 398, 'doorMask').setOrigin(0, 0);
+        viewDoorMask = this.add.sprite(274, 398, 'doorMask').setOrigin(0, 0);
         viewDoorMask.on('pointerdown', () => {
+            console.log("TS door mask....")
+/*            
             if (doorUnlocked) {
                 egress = true;
                 updateWall = true;
@@ -267,18 +289,23 @@ backButton.events.onInputDown.add(listener, this);
                 slots.clearItem(this, "objKeyWhole");
                 slots.clearSelect();
             }
+*/            
         });
 
-        objectMask = this.add.image(10, 250, 'objectMask').setOrigin(0, 0);
+        objectMask = this.add.sprite(10, 250, 'objectMask').setOrigin(0, 0);
         // Flip object over. Need to adjust for key presence if it's the plate. Awkward!
         objectMask.on('pointerdown', () => {
             flipIt = true;
             foundHalfKey = false;
+/* TS slots...            
             if (slots.inventoryViewObj == "objPlate" && viewWall == 5) {
                 foundHalfKey = true;
             }
             slots.inventoryView = true;
+*/            
         });
+/*
+TS progress!        
         keyMask = this.add.image(315, 540, 'keyMask').setOrigin(0, 0);
         keyMask.on('pointerdown', () => {
             slots.inventoryView = true;
@@ -288,6 +315,8 @@ backButton.events.onInputDown.add(listener, this);
 
             slots.addIcon(this, icons[3].toString(), obj[3], altObj[3]); // TODO: get name from sprite
         });
+
+*/
 
 //Recorder is next...
         //myViewport.setInteractive();
@@ -306,7 +335,11 @@ backButton.events.onInputDown.add(listener, this);
         };
     }
 
-    update(time) {
+    // TS doesn't know about time
+    //update(time) {
+    update () {
+
+//TS next thing after the game is typescript...        
         /* The recorder will be so nice...
         var pointer = this.input.activePointer;
 
@@ -318,14 +351,17 @@ backButton.events.onInputDown.add(listener, this);
             
         ]);
         */
-
+/* TS just fix failed...
         if (showXtime > 0) {
             if ((this.time.now - showXtime) > 500) {
                 showXtime = -1;
                 failed.setDepth(-1);
             }
         }
+*/        
 
+
+/*
         if (slots.inventoryView) {
             slots.currentMode = "item"; // so slots object knows what is happening
             
@@ -372,7 +408,12 @@ backButton.events.onInputDown.add(listener, this);
             objectMask.setVisible(true);
             objectMask.setDepth(100);
             objectMask.setInteractive();
-        } else if ((viewWall != currentWall || updateWall)) {
+// TS hack            
+//        } else if ((viewWall != currentWall || updateWall)) {
+*/    
+          if ((viewWall != currentWall || updateWall)) {    
+
+/* TS EXIT
             if (egress) {
                 this.add.image(0, 0, walls[8]).setOrigin(0, 0);
                 leftButton.setVisible(false);
@@ -399,19 +440,30 @@ backButton.events.onInputDown.add(listener, this);
                 viewDoorMask.setVisible(false);
                 return;
             }
-            slots.currentMode = "room";
+*/            
+            
+
+//TS
+//            slots.currentMode = "room";
             if (viewWall > -1) {
                 if (doorUnlocked && viewWall == 0) {
                     this.add.image(0, 0, walls[7]).setOrigin(0, 0);
                 } else {
                     this.add.image(0, 0, walls[viewWall]).setOrigin(0, 0);
                 }
-                slots.displaySlots();
+//TS                
+//                slots.displaySlots();
             }
+
+
             currentWall = viewWall;
             updateWall = false;
-            invBar.setDepth(100);
 
+// TS            
+//            invBar.setDepth(100);
+
+
+// should be doable next!
             if (viewWall == 0)
                 this.add.sprite(540, 650, tableView[tableState]).setOrigin(0, 0);
             if (viewWall == 4)
@@ -426,6 +478,7 @@ backButton.events.onInputDown.add(listener, this);
                 rightButton.setVisible(true); rightButton.setDepth(100); rightButton.setInteractive();
                 backButton.setVisible(false);
             }
+
             plusButton.setVisible(false);
 
             if (viewWall == 0) {
