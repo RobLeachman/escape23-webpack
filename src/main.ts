@@ -1,6 +1,17 @@
+/****************
+ * An escape room coded in Phaser.
+ * 
+ * - Recorder
+ * - Rework combination logic
+ * - Rework hints
+ * -- show question mark when stuck
+ * - Sound
+ * - Fireworks on winner screen
+ */
+
 import 'phaser';
 
-import Slots from "./objects/slots.js"
+import Slots from "./objects/slots"
 
 var currentWall = -1;
 
@@ -11,7 +22,7 @@ const altObj = new Array();
 const tableView = new Array();
 const closeView = new Array();
 const i = new Array();
-var viewWall = 2;
+var viewWall = 4; // TS production is 2
 var previousWall = -1;
 
 var invBar: Phaser.GameObjects.Sprite;
@@ -37,10 +48,10 @@ var doorUnlocked = false;
 var egress = false;
 var didBonus = false;
 
-var slots;
+var slots : Slots;
 
 var showXtime = -1;
-var style;
+var style: string;
 var myViewport;
 var viewportText;
 var viewportPointer;
@@ -165,10 +176,10 @@ class PlayGame extends Phaser.Scene {
 // Whoops, forgot to commit MVP! Recorder is next...        
 //this.input.setTopOnly(false);
 
-/* TS 
+
         slots = new Slots(this, "iconEmpty", "iconSelected", "iconSelectedSecond");
+        slots.displaySlots();
         slots.currentMode = "room";
-*/        
 
         invBar = this.add.sprite(0, 1040, 'inventory').setOrigin(0, 0);
         leftButton = this.add.sprite(80, 950, 'left');
@@ -198,13 +209,14 @@ backButton.events.onInputDown.add(listener, this);
                 viewWall = 3;
         });
 
-        backButton.on('pointerdown', () => {
+        backButton.on('pointerdown', () => {            
             if (viewWall == 4)
                 viewWall = 0;
             else
                 viewWall = previousWall;
-// TS                
+// after recorder fix this!                
 //            slots.clearSecondSelect();
+            slots.currentMode = "room";
         });
 
 
@@ -258,8 +270,8 @@ backButton.events.onInputDown.add(listener, this);
         // Add it and then remove from view and flag for an update.
         takeItemMask.on('pointerdown', () => {            
             if (tableState < 3) {
-//TS                
-//                slots.addIcon(this, icons[tableState].toString(), obj[tableState], altObj[tableState]); // TODO: get name from sprite
+                
+                slots.addIcon(this, icons[tableState].toString(), obj[tableState], altObj[tableState]); // TODO: get name from sprite
                 this.add.sprite(190, 560, closeView[tableState]).setOrigin(0, 0);
                 tableState++;
 
@@ -278,18 +290,18 @@ backButton.events.onInputDown.add(listener, this);
 
         viewDoorMask = this.add.sprite(274, 398, 'doorMask').setOrigin(0, 0);
         viewDoorMask.on('pointerdown', () => {
-            console.log("TS door mask....")
-/*            
             if (doorUnlocked) {
-                egress = true;
+                egress = true; // TODO doorUnlocked needs multiple states... then drop this flag
                 updateWall = true;
-            } else if (slots.getSelected() == "objKeyWhole") {
+            //} else if (slots.getSelected() == "objKeyWhole") {
+            } else if (slots.getSelected() == "objDonut") {    
                 doorUnlocked = true;
                 updateWall = true;
-                slots.clearItem(this, "objKeyWhole");
-                slots.clearSelect();
+                //slots.clearItem(this, "objKeyWhole");
+                slots.clearItem(this, "objDonut");
+                slots.clearSelect(); // TODO why not do this automatically on clearItem()??
             }
-*/            
+            
         });
 
         objectMask = this.add.sprite(10, 250, 'objectMask').setOrigin(0, 0);
@@ -297,26 +309,23 @@ backButton.events.onInputDown.add(listener, this);
         objectMask.on('pointerdown', () => {
             flipIt = true;
             foundHalfKey = false;
-/* TS slots...            
+
             if (slots.inventoryViewObj == "objPlate" && viewWall == 5) {
                 foundHalfKey = true;
             }
             slots.inventoryView = true;
-*/            
         });
-/*
-TS progress!        
-        keyMask = this.add.image(315, 540, 'keyMask').setOrigin(0, 0);
+
+        keyMask = this.add.sprite(315, 540, 'keyMask').setOrigin(0, 0);
         keyMask.on('pointerdown', () => {
             slots.inventoryView = true;
             flipIt = false;
             snagged = true;
             haveHalfKey = true;
 
-            slots.addIcon(this, icons[3].toString(), obj[3], altObj[3]); // TODO: get name from sprite
+            slots.addIcon(this, icons[3].toString(), obj[3], altObj[3]); // TODO: get name from sprite?!
         });
 
-*/
 
 //Recorder is next...
         //myViewport.setInteractive();
@@ -324,6 +333,8 @@ TS progress!
         //viewportText = this.add.text(10, 10, '', { fill: '#00ff00' });
         //viewportText.setDepth(3001); // TODO: rationalize the crazy depths!
 
+// What is typescript type for this?!
+/*
         style = {
             'margin': 'auto',
             'background-color': '#000',
@@ -331,15 +342,12 @@ TS progress!
             'height': '100px',
             'font': '40px Arial',
             'color': 'white'
-
         };
+*/
     }
 
-    // TS doesn't know about time
-    //update(time) {
-    update () {
+    update() {
 
-//TS next thing after the game is typescript...        
         /* The recorder will be so nice...
         var pointer = this.input.activePointer;
 
@@ -351,19 +359,16 @@ TS progress!
             
         ]);
         */
-/* TS just fix failed...
+
         if (showXtime > 0) {
             if ((this.time.now - showXtime) > 500) {
                 showXtime = -1;
                 failed.setDepth(-1);
             }
         }
-*/        
 
-
-/*
         if (slots.inventoryView) {
-            slots.currentMode = "item"; // so slots object knows what is happening
+            slots.currentMode = "item"; // so slots object knows what is happening - needed?!
             
             if (viewWall < 5)
                 previousWall = viewWall;
@@ -396,11 +401,14 @@ TS progress!
             rightButton.setVisible(false);
             backButton.setVisible(true); backButton.setDepth(100); backButton.setInteractive();
 
+/* Will fix combinations, after recorder...
             if (slots.otherViewObj.length > 0) {
                 plusButton.setVisible(true); plusButton.setDepth(110); plusButton.setInteractive();
             } else {
                 plusButton.setVisible(false);
             }
+*/            
+
             takeItemMask.setVisible(false);
             viewTableMask.setVisible(false);
             viewDoorMask.setVisible(false);
@@ -408,12 +416,8 @@ TS progress!
             objectMask.setVisible(true);
             objectMask.setDepth(100);
             objectMask.setInteractive();
-// TS hack            
-//        } else if ((viewWall != currentWall || updateWall)) {
-*/    
-          if ((viewWall != currentWall || updateWall)) {    
 
-/* TS EXIT
+        } else if ((viewWall != currentWall || updateWall)) {
             if (egress) {
                 this.add.image(0, 0, walls[8]).setOrigin(0, 0);
                 leftButton.setVisible(false);
@@ -431,45 +435,43 @@ TS progress!
                     failed.setX(360); failed.setY(800);
                 }
 
-                var element = this.add.dom(340, 1100, 'div', style, sentence)
+                const style = 'margin: auto; background-color: black; color:white; width: 520px; height: 100px; font: 40px Arial';
+                this.add.dom(350,1100, 'div', style, sentence);
+                
 
                 invBar.setDepth(0);
                 slots.clearAll(this);
                 takeItemMask.setVisible(false);
                 viewTableMask.setVisible(false);
                 viewDoorMask.setVisible(false);
+
+                updateWall = false;
+                viewWall = currentWall;
                 return;
             }
-*/            
+           
             
 
-//TS
-//            slots.currentMode = "room";
-            if (viewWall > -1) {
+            slots.currentMode = "room";
+            if (viewWall > -1) { //?
                 if (doorUnlocked && viewWall == 0) {
                     this.add.image(0, 0, walls[7]).setOrigin(0, 0);
                 } else {
                     this.add.image(0, 0, walls[viewWall]).setOrigin(0, 0);
                 }
-//TS                
-//                slots.displaySlots();
             }
 
-
+            slots.displaySlots(); // TODO: is this really required every time the wall changes?
+            invBar.setDepth(100); // TODO: surely no.
             currentWall = viewWall;
             updateWall = false;
 
-// TS            
-//            invBar.setDepth(100);
-
-
-// should be doable next!
             if (viewWall == 0)
                 this.add.sprite(540, 650, tableView[tableState]).setOrigin(0, 0);
             if (viewWall == 4)
                 this.add.sprite(176, 532, closeView[tableState]).setOrigin(0, 0);
 
-            if (viewWall > 3) { // viewing table not room wall
+            if (viewWall > 3) { // viewing table not room wall, or inventory view
                 leftButton.setVisible(false);
                 rightButton.setVisible(false);
                 backButton.setVisible(true); backButton.setDepth(100); backButton.setInteractive();

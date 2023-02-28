@@ -1,100 +1,158 @@
-export default class Slots {
-    constructor(scene, slotIconSprite, selectSprite, selectSecond) {
-        this.emptySprite = slotIconSprite;
-        this.inventoryView = false;
-        this.inventoryViewObj = "";
-        this.otherViewObj = "";
-        this.selectedIcon = scene.add.sprite(1000, 1075, selectSprite).setOrigin(0, 0);
-        this.selectedSecondIcon = scene.add.sprite(0, 1075, selectSecond).setOrigin(0, 0);
-        this.slotArray = [];
+class InvItem {
+    scene: Phaser.Scene; // do we need to save this?
+    iconSprite: Phaser.GameObjects.Sprite;
 
-        for (var i = 0; i < 6; i++) {
-            var index = i;
-            var selected = false;
-            var thisSlot = scene.add.sprite(95 + i * 90, 1075, slotIconSprite).setOrigin(0, 0);
-            thisSlot.name = "empty";
-            this.slotArray[i] = { index: i, slotSprite: thisSlot, selected: false, allSlots: this, selectedIcon: this.selectedIcon, selectedSecondIcon: this.selectedSecondIcon, theScene: this.scene };
-        }
+    index: number;
+    name: string;
+    selected: boolean;
+    allSlots: Slots;
+
+    objView: string; // name of image to display when examined
+    altObjView: string; // alternate view image
+
+    constructor (scene: Phaser.Scene, 
+        index: number,  
+        iconSpriteImage: string,
+        allSlots: Slots) { 
+
+        this.scene = scene;
+        this.iconSprite = this.scene.add.sprite(95 + index * 90, 1075, iconSpriteImage).setOrigin(0, 0);
+        this.iconSprite.on('pointerdown', this.clickIt, this);        
+
+        this.index = index;
+        this.selected = false;
+        this.name = "empty";
+        this.allSlots = allSlots;
     }
-    clickMe(thisSlot, allSlots, scene) {
-        var prevItem = -1;
-        for (var i = 0; i < 6; i++) {
-                if (this.allSlots.slotArray[i].selected)
-                    prevItem = i;
-            //}
-            this.allSlots.slotArray[i].slotSprite.setDepth(1);
-            if (i != this.index)
-                this.allSlots.slotArray[i].selected = false;
-        }
-        this.selected=true;
-        // mark the selected icon
-        this.selectedIcon.x = 95 + this.index * 90;
-        this.selectedIcon.setDepth(1);
-        //this.selectedSecondIcon.x = 95+this.index*90;
+
+    clickIt() {
+        let prevItem = -1;
+        this.allSlots.slotArray.forEach((icon, idx) => {
+            if (icon.selected)
+               prevItem = idx;            
+            icon.selected = false;
+            icon.iconSprite.setDepth(1); // do we need this here? probably not          
+        });
+        console.log("click index " + this.index + " previous " + prevItem);
+        this.selected = true;
+        // mark this selected icon
+        this.allSlots.selectedIcon.x = 95 + this.index * 90;
+        this.allSlots.selectedIcon.setDepth(1); // ??
+
+        // rewrite the second selection stuff after recorder is done after TS is done
+        /*
         this.selectedSecondIcon.x = 1000;
         this.allSlots.otherViewObj = "";
         if (prevItem > -1 && prevItem != this.index && this.allSlots.currentMode == "item") {
             this.selectedSecondIcon.x = 95 + prevItem * 90;
             this.allSlots.otherViewObj = this.allSlots.slotArray[prevItem].objView;
         }
-        this.selectedSecondIcon.setDepth(1);
+        this.selectedSecondIcon.setDepth(1);        
+        */
 
+        // When selected icon is clicked again we need to switch view modes from room to item.
+        // When in item view mode if another icon is clicked switch to that item
         if (prevItem == this.index || this.allSlots.currentMode == "item") {
-        this.allSlots.inventoryView = true;
-        this.allSlots.inventoryViewObj = this.objView;
-        this.allSlots.inventoryViewAlt = this.altObjView;
-        this.selected = true;
+            this.allSlots.inventoryView = true;
+            this.allSlots.inventoryViewObj = this.objView;
+            this.allSlots.inventoryViewAlt = this.altObjView;
         }
+    }
+}
 
+export default class Slots {
+    //slotArray: [];
+    slotArray: InvItem[] = [];
+
+    emptySprite: string;
+    inventoryView: boolean;
+    inventoryViewObj: string;
+    inventoryViewAlt: string;
+    otherViewObj: string;
+    selectedIcon: Phaser.GameObjects.Sprite;
+    selectedSecondIcon: Phaser.GameObjects.Sprite;
+    selected: boolean;
+    objView: string;
+    altObjView: string;
+    index: number;
+    currentMode: string;
+
+    // Construct with the active scene, the name of the empty sprite (for testing), and the select boxes 
+    constructor(scene:Phaser.Scene, 
+        slotIconSprite: string, 
+        selectSprite: string, 
+        selectSecond: string) {
+
+        this.emptySprite = slotIconSprite;
+        this.selectedIcon = scene.add.sprite(1000, 1075, selectSprite).setOrigin(0, 0);
+        this.selectedSecondIcon = scene.add.sprite(1000, 1075, selectSecond).setOrigin(0, 0);
+
+/* hacked this off to the side while converting to typescript... we don't need these?       
+        this.inventoryView = false;
+        this.inventoryViewObj = "";
+        this.otherViewObj = "";        
+*/        
+        for (var i = 0; i < 6; i++) {
+            let slotItem = new InvItem(scene, i, slotIconSprite, this); // empty sprite image, or select
+            this.slotArray.push(slotItem);
+
+            
+        }
+        this.currentMode = "room"; // TODO is this even needed? 
     }
 
     displaySlots() {
-        for (var i = 0; i < 6; i++) {
-            this.slotArray[i].slotSprite.setDepth(1);
-        }
+        this.slotArray.forEach((icon, idx) => {
+            icon.iconSprite.setDepth(1);
+        });        
+        
     }
-
-    addIcon(scene, iconSprite, objectView, altObjectView) {
-        var i = 0;
-        for (var k = 0; k < 6; k++) {
-// why check empty? clear just destroys the sprite and i couldn't replace it properly
-            if (this.slotArray[k].slotSprite.name == "empty" || this.slotArray[k].slotSprite.name == "") {
-                break;
+    
+    addIcon(scene:Phaser.Scene, iconSpriteName: string, objectView: string, altObjectView: string) {
+        let i = -1;
+        this.slotArray.forEach((icon, idx) => {
+            // why check empty? clear just destroys the sprite and i couldn't replace it properly TODO FIX
+            if (i == -1 && (icon.iconSprite.name == "empty" || icon.iconSprite.name == "")) {
+                i = idx;
+                //break;
             }
-        }
+        });
 
-        this.slotArray[k].slotSprite.destroy();
-        this.slotArray[k].slotSprite =
-            scene.add.sprite(95 + k * 90, 1075, iconSprite).setOrigin(0, 0);
-        this.slotArray[k].slotSprite.name = objectView;
-        this.slotArray[k].index = k;
-        this.slotArray[k].selected = false;
-        this.slotArray[k].slotSprite.setInteractive();
-        this.slotArray[k].slotSprite.setDepth(200);
-        this.slotArray[k].slotSprite.on('pointerdown', this.clickMe, this.slotArray[k]);
-        this.slotArray[k].objView = objectView;
-        this.slotArray[k].altObjView = altObjectView;
+        this.slotArray[i].iconSprite.destroy();
+        this.slotArray[i].iconSprite =
+            scene.add.sprite(95 + i * 90, 1075, iconSpriteName).setOrigin(0, 0);
+        this.slotArray[i].iconSprite.name = objectView;
+        this.slotArray[i].index = i;
+        this.slotArray[i].name = objectView;
+        this.slotArray[i].selected = false;
+        this.slotArray[i].iconSprite.setInteractive();
+        this.slotArray[i].iconSprite.setDepth(200);
+        this.slotArray[i].iconSprite.on('pointerdown', this.slotArray[i].clickIt, this.slotArray[i]);
+        this.slotArray[i].objView = objectView;
+        this.slotArray[i].altObjView = altObjectView;
     }
 
-    combineFail(scene) {
-        this.selectedSecondIcon.setX(1000);
-    }
-
+    
     clearSelect() {
         this.selectedIcon.setX(1000);        
+    }
+
+/* rework combine after recorder
+    combineFail(scene:Phaser.Scene) {
+        this.selectedSecondIcon.setX(1000);
     }
 
     clearSecondSelect() {
         this.selectedSecondIcon.setX(1000);        
     }
-
-    combiningItems(scene, obj1, obj2) {
+    
+    combiningItems(scene:Phaser.Scene, obj1: string, obj2: string) {
         this.selectedSecondIcon.setX(1000);
         this.clearItem(scene, obj1);
         this.clearItem(scene, obj2);
     }
 
-    selectItem(scene, objName, altName) {
+    selectItem(scene:Phaser.Scene, objName: string, altName: string) {
         // Find the selected item
         var k=-1;
         for (k = 0; k < 6; k++) {
@@ -105,41 +163,40 @@ export default class Slots {
         this.selectedIcon.setX(95 + k * 90);
         this.slotArray[k].selected = true;
     }
+*/    
 
-    getSelected(scene) {
-        var selectedThing = "";
-        for (var j = 0; j < 6; j++) {
-            if (this.slotArray[j].selected) {
-                selectedThing = this.slotArray[j].slotSprite.name;
-                break; 
+    getSelected() {
+        let selectedThing = "";
+        this.slotArray.forEach((icon, idx) => {
+            if (icon.selected) {
+                selectedThing = icon.name;
             }
-        }        
+        });   
         return selectedThing;
     }
 
-    clearItem(scene, objName) {
+    clearItem(scene:Phaser.Scene, objName: string) {
         var clearSlot = -1;
-        for (var k = 0; k < 6; k++) {
-            if (this.slotArray[k].slotSprite.name == objName) {
-                clearSlot = k;
-                break;
+        this.slotArray.forEach((icon, idx) => {
+            if (icon.name == objName) {
+                clearSlot = idx;
             }
-        }
+        });         
+
         if (clearSlot > -1) {
-            this.slotArray[clearSlot].slotSprite.destroy();
+            this.slotArray[clearSlot].iconSprite.destroy();
             var clearedSprite = scene.add.sprite(1000, 1075, this.emptySprite);
-            clearedSprite.name == "empty"; // ends up to be blank string?!
-            this.slotArray[k] = { index: k, slotSprite: clearedSprite, selected: false, allSlots: this, selectedIcon: this.selectedIcon, selectedSecondIcon: this.selectedSecondIcon, theScene: scene };
+            clearedSprite.name == "empty"; // TODO ends up to be blank string?!
         } else {
             console.log("ERROR clear not found!!!!!!!");
         }
     }
 
-    clearAll(scene) {
-        for (var k = 0; k < 6; k++) {
-            this.slotArray[k].slotSprite.destroy();
-        }
+    clearAll(scene:Phaser.Scene) {
+        this.slotArray.forEach((icon, idx) => {
+            icon.iconSprite.destroy();
+        });          
         this.selectedIcon.setX(1000);
         this.selectedSecondIcon.setX(1000);
-    }
+    }    
 } 
