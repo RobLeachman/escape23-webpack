@@ -5,6 +5,7 @@
  * - Rework combination logic
  * - Rework hints
  * -- show question mark when stuck
+ * - Changing cursor
  * - Sound
  * - Fireworks on winner screen
  */
@@ -12,6 +13,7 @@
 import 'phaser';
 
 import Slots from "./objects/slots"
+import Recorder from "./objects/recorder"
 
 var currentWall = -1;
 
@@ -48,14 +50,17 @@ var doorUnlocked = false;
 var egress = false;
 var didBonus = false;
 
-var slots : Slots;
+var slots: Slots;
 
 var showXtime = -1;
 var style: string;
+
+var recorder: Recorder;
 var myViewport;
-var viewportText;
-var viewportPointer;
-var viewportPointerClick;
+var viewportText: any;                                     //??
+var viewportPointer: Phaser.GameObjects.Sprite;
+var viewportPointerClick: Phaser.GameObjects.Sprite;
+var pointer:Phaser.Input.Pointer;
 
 class PlayGame extends Phaser.Scene {
 
@@ -64,8 +69,8 @@ class PlayGame extends Phaser.Scene {
     }
     preload() {
         this.load.image('myViewport', 'assets/backgrounds/viewport.png');
-        viewportPointer = this.load.image('clckrLoc', 'assets/sprites/pointer.png');
-        viewportPointerClick = this.load.image('clckrClk', 'assets/sprites/pointerClicked.png');
+        this.load.image('clckrLoc', 'assets/sprites/pointer.png');
+        this.load.image('clckrClk', 'assets/sprites/pointerClicked.png');
 
         this.load.image('wall1', 'assets/backgrounds/invroom - room - empty.png');
         this.load.image('wall2', 'assets/backgrounds/invroom - room - west.png');
@@ -171,10 +176,14 @@ class PlayGame extends Phaser.Scene {
     }
 
     create() {
-// Roll the recorder...        
-        //myViewport = this.add.image(0, 0, 'myViewport').setOrigin(0, 0);        
-// Whoops, forgot to commit MVP! Recorder is next...        
-//this.input.setTopOnly(false);
+        // Debug recorder stuff
+        myViewport = this.add.image(0, 0, 'myViewport').setOrigin(0, 0);
+        viewportPointer = this.add.sprite(1000, 0, 'clckrLoc').setOrigin(0, 0);
+        viewportPointerClick = this.add.sprite(1000, 0, 'clckrClk');
+        recorder = new Recorder(this.input.activePointer, viewportPointer, viewportPointerClick);
+        viewportPointer.setDepth(3001);
+        viewportPointerClick.setDepth(3001);
+        pointer = this.input.activePointer;        
 
 
         slots = new Slots(this, "iconEmpty", "iconSelected", "iconSelectedSecond");
@@ -197,25 +206,24 @@ backButton.events.onInputDown.add(listener, this);
 */
 
         rightButton.on('pointerdown', () => {
-//console.log("RIGHT button click recorder" + this.game.input.x, this.game.input.y)
             viewWall++;
             if (viewWall > 3)
                 viewWall = 0;
         });
         leftButton.on('pointerdown', () => {
-            console.log("TS left");
             viewWall--;
             if (viewWall < 0)
                 viewWall = 3;
         });
+        backButton.on('pointerdown', () => {
+            console.log("BACK button click recorder" + this.game.input)
 
-        backButton.on('pointerdown', () => {            
             if (viewWall == 4)
                 viewWall = 0;
             else
                 viewWall = previousWall;
-// after recorder fix this!                
-//            slots.clearSecondSelect();
+            // after recorder fix this!                
+            //            slots.clearSecondSelect();
             slots.currentMode = "room";
         });
 
@@ -223,54 +231,53 @@ backButton.events.onInputDown.add(listener, this);
         plusButton.on('pointerdown', () => {
             console.log("plus button TS");
             plusButton.setVisible(false);
-/*            
-
-            var combineFailed = true;
-
-            // could sort the names and skip the duplicate code...
-            var good1 = "objKeyA"; var good2 = "objKeyB"; var goodNew = 4;
-            if ((slots.inventoryViewObj == good1 && slots.otherViewObj == good2) ||
-                (slots.inventoryViewObj == good2 && slots.otherViewObj == good1)) {
-                
-                slots.combiningItems(this, good1, good2);
-                slots.addIcon(this, icons[goodNew].toString(), obj[goodNew], altObj[goodNew]); // TODO: get name from sprite
-                slots.selectItem(this, obj[goodNew], altObj[goodNew]);
-                combineFailed = false;
-            } else {
-                var good1 = "objDonut"; var good2 = "objPlate"; var goodNew = 5;
-                if (!doorUnlocked)
-                    good1 = "no bonus combine until door is unlocked!";
-                if ((slots.inventoryViewObj == good1 && slots.otherViewObj == good2) ||
-                    (slots.inventoryViewObj == good2 && slots.otherViewObj == good1)) {
-                    
-                    didBonus = true;
-                    slots.combiningItems(this, good1, good2);
-                    slots.addIcon(this, icons[goodNew].toString(), obj[goodNew], altObj[goodNew]); // TODO: get name from sprite
-                    slots.selectItem(this, obj[goodNew], altObj[goodNew]);
-                    combineFailed = false;
-                }
-            }
-
-            if (combineFailed) {
-                slots.combineFail(this);
-                failed.setDepth(200);
-                showXtime = this.time.now;
-            } else {
-                slots.inventoryView = true;
-                slots.inventoryViewObj = obj[goodNew];
-                slots.inventoryViewAlt = altObj[goodNew];
-                slots.otherViewObj = "";
-            }
-*/            
+            /*            
+            
+                        var combineFailed = true;
+            
+                        // could sort the names and skip the duplicate code...
+                        var good1 = "objKeyA"; var good2 = "objKeyB"; var goodNew = 4;
+                        if ((slots.inventoryViewObj == good1 && slots.otherViewObj == good2) ||
+                            (slots.inventoryViewObj == good2 && slots.otherViewObj == good1)) {
+                            
+                            slots.combiningItems(this, good1, good2);
+                            slots.addIcon(this, icons[goodNew].toString(), obj[goodNew], altObj[goodNew]); // TODO: get name from sprite
+                            slots.selectItem(this, obj[goodNew], altObj[goodNew]);
+                            combineFailed = false;
+                        } else {
+                            var good1 = "objDonut"; var good2 = "objPlate"; var goodNew = 5;
+                            if (!doorUnlocked)
+                                good1 = "no bonus combine until door is unlocked!";
+                            if ((slots.inventoryViewObj == good1 && slots.otherViewObj == good2) ||
+                                (slots.inventoryViewObj == good2 && slots.otherViewObj == good1)) {
+                                
+                                didBonus = true;
+                                slots.combiningItems(this, good1, good2);
+                                slots.addIcon(this, icons[goodNew].toString(), obj[goodNew], altObj[goodNew]); // TODO: get name from sprite
+                                slots.selectItem(this, obj[goodNew], altObj[goodNew]);
+                                combineFailed = false;
+                            }
+                        }
+            
+                        if (combineFailed) {
+                            slots.combineFail(this);
+                            failed.setDepth(200);
+                            showXtime = this.time.now;
+                        } else {
+                            slots.inventoryView = true;
+                            slots.inventoryViewObj = obj[goodNew];
+                            slots.inventoryViewAlt = altObj[goodNew];
+                            slots.otherViewObj = "";
+                        }
+            */
         });
 
 
         takeItemMask = this.add.sprite(155, 530, 'takeMask').setOrigin(0, 0);
         // Add item to inventory list when picked up. In this test it's easy, just 3 stacked items.
         // Add it and then remove from view and flag for an update.
-        takeItemMask.on('pointerdown', () => {            
+        takeItemMask.on('pointerdown', () => {
             if (tableState < 3) {
-                
                 slots.addIcon(this, icons[tableState].toString(), obj[tableState], altObj[tableState]); // TODO: get name from sprite
                 this.add.sprite(190, 560, closeView[tableState]).setOrigin(0, 0);
                 tableState++;
@@ -286,22 +293,20 @@ backButton.events.onInputDown.add(listener, this);
                 viewWall = 4;
 
         });
-       
 
         viewDoorMask = this.add.sprite(274, 398, 'doorMask').setOrigin(0, 0);
         viewDoorMask.on('pointerdown', () => {
             if (doorUnlocked) {
                 egress = true; // TODO doorUnlocked needs multiple states... then drop this flag
                 updateWall = true;
-            //} else if (slots.getSelected() == "objKeyWhole") {
-            } else if (slots.getSelected() == "objDonut") {    
+                //} else if (slots.getSelected() == "objKeyWhole") {
+            } else if (slots.getSelected() == "objDonut") {
                 doorUnlocked = true;
                 updateWall = true;
                 //slots.clearItem(this, "objKeyWhole");
                 slots.clearItem(this, "objDonut");
                 slots.clearSelect(); // TODO why not do this automatically on clearItem()??
             }
-            
         });
 
         objectMask = this.add.sprite(10, 250, 'objectMask').setOrigin(0, 0);
@@ -326,39 +331,31 @@ backButton.events.onInputDown.add(listener, this);
             slots.addIcon(this, icons[3].toString(), obj[3], altObj[3]); // TODO: get name from sprite?!
         });
 
+        // Debug recorder debugger
+        viewportText = this.add.text(10, 10, '');
+        viewportText.setDepth(3001); // TODO: rationalize the crazy depths!
 
-//Recorder is next...
-        //myViewport.setInteractive();
-        //myViewport.onInputDown.add(listener, this);
-        //viewportText = this.add.text(10, 10, '', { fill: '#00ff00' });
-        //viewportText.setDepth(3001); // TODO: rationalize the crazy depths!
-
-// What is typescript type for this?!
-/*
-        style = {
-            'margin': 'auto',
-            'background-color': '#000',
-            'width': '520px',
-            'height': '100px',
-            'font': '40px Arial',
-            'color': 'white'
-        };
-*/
+        // What is typescript type for this?!
+        /*
+                style = {
+                    'margin': 'auto',
+                    'background-color': '#000',
+                    'width': '520px',
+                    'height': '100px',
+                    'font': '40px Arial',
+                    'color': 'white'
+                };
+        */
     }
 
     update() {
-
-        /* The recorder will be so nice...
-        var pointer = this.input.activePointer;
-
         viewportText.setText([
             'x: ' + pointer.worldX,
             'y: ' + pointer.worldY,
             'rightButtonDown: ' + pointer.rightButtonDown(),
             'isDown: ' + pointer.isDown
-            
         ]);
-        */
+        recorder.checkPointer(this);
 
         if (showXtime > 0) {
             if ((this.time.now - showXtime) > 500) {
@@ -369,7 +366,6 @@ backButton.events.onInputDown.add(listener, this);
 
         if (slots.inventoryView) {
             slots.currentMode = "item"; // so slots object knows what is happening - needed?!
-            
             if (viewWall < 5)
                 previousWall = viewWall;
             keyMask.setVisible(false);
@@ -401,13 +397,13 @@ backButton.events.onInputDown.add(listener, this);
             rightButton.setVisible(false);
             backButton.setVisible(true); backButton.setDepth(100); backButton.setInteractive();
 
-/* Will fix combinations, after recorder...
-            if (slots.otherViewObj.length > 0) {
-                plusButton.setVisible(true); plusButton.setDepth(110); plusButton.setInteractive();
-            } else {
-                plusButton.setVisible(false);
-            }
-*/            
+            /* Will fix combinations, after recorder...
+                        if (slots.otherViewObj.length > 0) {
+                            plusButton.setVisible(true); plusButton.setDepth(110); plusButton.setInteractive();
+                        } else {
+                            plusButton.setVisible(false);
+                        }
+            */
 
             takeItemMask.setVisible(false);
             viewTableMask.setVisible(false);
@@ -436,8 +432,8 @@ backButton.events.onInputDown.add(listener, this);
                 }
 
                 const style = 'margin: auto; background-color: black; color:white; width: 520px; height: 100px; font: 40px Arial';
-                this.add.dom(350,1100, 'div', style, sentence);
-                
+                this.add.dom(350, 1100, 'div', style, sentence);
+
 
                 invBar.setDepth(0);
                 slots.clearAll(this);
@@ -449,8 +445,8 @@ backButton.events.onInputDown.add(listener, this);
                 viewWall = currentWall;
                 return;
             }
-           
-            
+
+
 
             slots.currentMode = "room";
             if (viewWall > -1) { //?
