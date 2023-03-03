@@ -1,3 +1,5 @@
+import Recorder from "./recorder"
+
 class InvItem {
     scene: Phaser.Scene; // do we need to save this?
     iconSprite: Phaser.GameObjects.Sprite;
@@ -6,6 +8,7 @@ class InvItem {
     name: string;
     selected: boolean;
     allSlots: Slots;
+    recorder: Recorder;
 
     objView: string; // name of image to display when examined
     altObjView: string; // alternate view image
@@ -13,7 +16,8 @@ class InvItem {
     constructor (scene: Phaser.Scene, 
         index: number,  
         iconSpriteImage: string,
-        allSlots: Slots) { 
+        allSlots: Slots,
+        recorder: Recorder) { 
 
         this.scene = scene;
         this.iconSprite = this.scene.add.sprite(95 + index * 90, 1075, iconSpriteImage).setOrigin(0, 0);
@@ -23,9 +27,15 @@ class InvItem {
         this.selected = false;
         this.name = "empty";
         this.allSlots = allSlots;
+        this.recorder = recorder;
     }
 
     clickIt() {
+        console.log("ICON CLICK!!")
+        //console.log(this);
+        //console.log(this.name);
+        //console.log((this.iconSprite as Phaser.GameObjects.Sprite).texture.key)
+        this.recorder.recordIconClick(this.name)
         let prevItem = -1;
         this.allSlots.slotArray.forEach((icon, idx) => {
             if (icon.selected)
@@ -76,16 +86,19 @@ export default class Slots {
     altObjView: string;
     index: number;
     currentMode: string;
+    recorder: Recorder;
 
     // Construct with the active scene, the name of the empty sprite (for testing), and the select boxes 
     constructor(scene:Phaser.Scene, 
         slotIconSprite: string, 
         selectSprite: string, 
-        selectSecond: string) {
+        selectSecond: string,
+        recorder: Recorder) {
 
         this.emptySprite = slotIconSprite;
         this.selectedIcon = scene.add.sprite(1000, 1075, selectSprite).setOrigin(0, 0);
         this.selectedSecondIcon = scene.add.sprite(1000, 1075, selectSecond).setOrigin(0, 0);
+        this.recorder = recorder;
 
 /* hacked this off to the side while converting to typescript... we don't need these?       
         this.inventoryView = false;
@@ -93,7 +106,7 @@ export default class Slots {
         this.otherViewObj = "";        
 */        
         for (var i = 0; i < 6; i++) {
-            let slotItem = new InvItem(scene, i, slotIconSprite, this); // empty sprite image, or select
+            let slotItem = new InvItem(scene, i, slotIconSprite, this, this.recorder); // empty sprite image, or select
             this.slotArray.push(slotItem);
 
             
@@ -106,6 +119,14 @@ export default class Slots {
             icon.iconSprite.setDepth(1);
         });        
         
+    }
+//recorder will use this:
+    clickIcon(iconName: string) {
+        console.log("DO ICON CLICK " + iconName);
+        console.log(this);
+        console.log(this.slotArray[1].iconSprite);
+        this.slotArray[1].iconSprite.emit('pointerdown'); // selects the icon at position
+        //rightButton.emit('pointerdown');
     }
     
     addIcon(scene:Phaser.Scene, iconSpriteName: string, objectView: string, altObjectView: string) {

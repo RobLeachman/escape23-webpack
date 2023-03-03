@@ -176,7 +176,32 @@ class PlayGame extends Phaser.Scene {
     }
 
     create() {
-        // Debug recorder stuff
+        this.input.on('gameobjectdown', function (pointer:Phaser.Input.Pointer, gameObject:Phaser.GameObjects.GameObject) {
+            recorder.recordObjectDown((gameObject as Phaser.GameObjects.Sprite).texture.key);
+        });
+
+        /*
+        var content = [
+            "The sky above the port was the color of television, tuned to a dead channel.",
+            "`It's not like I'm using,' Case heard someone say, as he shouldered his way ",
+            "through the crowd around the door of the Chat. `It's like my body's developed",
+            "this massive drug deficiency.' It was a Sprawl voice and a Sprawl joke."
+        ];        
+        
+        //var graphics = this.make.graphics();
+        var graphics = this.add.graphics({
+            x: 0,
+            y: 0
+          });
+        // graphics.fillStyle(0xffffff);
+        graphics.fillRect(152, 133, 320, 250);
+        var mask = new Phaser.Display.Masks.GeometryMask(this, graphics);
+        var text = this.add.text(160, 280, content, { fontFamily: 'Arial', color: '#00ff00', wordWrap: { width: 310 } }).setOrigin(0);
+        text.setMask(mask);
+        text.setDepth(5000)
+        */
+        
+        // Recorder stuff
         myViewport = this.add.image(0, 0, 'myViewport').setOrigin(0, 0);
         viewportPointer = this.add.sprite(1000, 0, 'clckrLoc').setOrigin(0, 0);
         viewportPointerClick = this.add.sprite(1000, 0, 'clckrClk');
@@ -186,7 +211,7 @@ class PlayGame extends Phaser.Scene {
         pointer = this.input.activePointer;        
 
 
-        slots = new Slots(this, "iconEmpty", "iconSelected", "iconSelectedSecond");
+        slots = new Slots(this, "iconEmpty", "iconSelected", "iconSelectedSecond", recorder);
         slots.displaySlots();
         slots.currentMode = "room";
 
@@ -204,7 +229,6 @@ backButton.inputEnabled = true;
 this.position = new Phaser.Point();
 backButton.events.onInputDown.add(listener, this);
 */
-
         rightButton.on('pointerdown', () => {
             viewWall++;
             if (viewWall > 3)
@@ -215,8 +239,23 @@ backButton.events.onInputDown.add(listener, this);
             if (viewWall < 0)
                 viewWall = 3;
         });
+/*
+        //elsewhere
+        switch(recordedAction) { 
+            case "rightButton": { 
+                rightButton.emit('pointerdown');
+               break; 
+            } 
+            case "leftButton": { 
+                leftButton.emit('pointerdown'); 
+               break; 
+            } 
+         } 
+*/         
+         
+         
         backButton.on('pointerdown', () => {
-            console.log("BACK button click recorder" + this.game.input)
+            slots.clickIcon("iconDonut");
 
             if (viewWall == 4)
                 viewWall = 0;
@@ -241,7 +280,7 @@ backButton.events.onInputDown.add(listener, this);
                             (slots.inventoryViewObj == good2 && slots.otherViewObj == good1)) {
                             
                             slots.combiningItems(this, good1, good2);
-                            slots.addIcon(this, icons[goodNew].toString(), obj[goodNew], altObj[goodNew]); // TODO: get name from sprite
+                            slots.addIcon(this, icons[goodNew].toString(), obj[goodNew], altObj[goodNew]); // TODO: get name from texture key
                             slots.selectItem(this, obj[goodNew], altObj[goodNew]);
                             combineFailed = false;
                         } else {
@@ -274,8 +313,10 @@ backButton.events.onInputDown.add(listener, this);
 
 
         takeItemMask = this.add.sprite(155, 530, 'takeMask').setOrigin(0, 0);
+
         // Add item to inventory list when picked up. In this test it's easy, just 3 stacked items.
         // Add it and then remove from view and flag for an update.
+        
         takeItemMask.on('pointerdown', () => {
             if (tableState < 3) {
                 slots.addIcon(this, icons[tableState].toString(), obj[tableState], altObj[tableState]); // TODO: get name from sprite
@@ -285,6 +326,7 @@ backButton.events.onInputDown.add(listener, this);
                 updateWall = true;
             }
         });
+        
 
         viewTableMask = this.add.sprite(440, 615, 'tableMask').setOrigin(0, 0);
         viewTableMask.on('pointerdown', () => {
@@ -355,6 +397,7 @@ backButton.events.onInputDown.add(listener, this);
             'rightButtonDown: ' + pointer.rightButtonDown(),
             'isDown: ' + pointer.isDown
         ]);
+        recorder.fixPointer(this.input.activePointer)
         recorder.checkPointer(this);
 
         if (showXtime > 0) {
