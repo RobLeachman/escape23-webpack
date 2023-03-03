@@ -18,5 +18,7 @@ npm install --save-dev copy-webpack-plugin
 npm install --save-dev clean-webpack-plugin
 npm install --save-dev webpack-dev-server
 
+npm install --save zipson // not using this yet, perhaps never
+
 npm run development
 npm run distribution

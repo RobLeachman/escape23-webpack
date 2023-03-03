@@ -8,12 +8,14 @@
  * - Changing cursor
  * - Sound
  * - Fireworks on winner screen
+ * - Fade scene in
  */
 
 import 'phaser';
 
 import Slots from "./objects/slots"
 import Recorder from "./objects/recorder"
+import {setCookie, getCookie, eraseCookie} from "./utils/cookie";
 
 var currentWall = -1;
 
@@ -255,7 +257,7 @@ backButton.events.onInputDown.add(listener, this);
          
          
         backButton.on('pointerdown', () => {
-            slots.clickIcon("iconDonut");
+            //slots.clickIcon("iconDonut");   // here's how we click an icon!
 
             if (viewWall == 4)
                 viewWall = 0;
