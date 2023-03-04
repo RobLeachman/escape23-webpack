@@ -15,7 +15,7 @@ import 'phaser';
 
 import Slots from "./objects/slots"
 import Recorder from "./objects/recorder"
-import {setCookie, getCookie, eraseCookie} from "./utils/cookie";
+import { setCookie, getCookie, eraseCookie } from "./utils/cookie";
 
 var currentWall = -1;
 
@@ -26,7 +26,7 @@ const altObj = new Array();
 const tableView = new Array();
 const closeView = new Array();
 const i = new Array();
-var viewWall = 4; // TS production is 2
+var viewWall = 4;
 var previousWall = -1;
 
 var invBar: Phaser.GameObjects.Sprite;
@@ -41,6 +41,7 @@ var viewTableMask: Phaser.GameObjects.Sprite;
 var viewDoorMask: Phaser.GameObjects.Sprite;
 var objectMask: Phaser.GameObjects.Sprite;
 var keyMask: Phaser.GameObjects.Sprite;
+var hintMask: Phaser.GameObjects.Sprite;
 
 var tableState = 0;
 var updateWall = false;
@@ -62,7 +63,15 @@ var myViewport;
 var viewportText: any;                                     //??
 var viewportPointer: Phaser.GameObjects.Sprite;
 var viewportPointerClick: Phaser.GameObjects.Sprite;
-var pointer:Phaser.Input.Pointer;
+var pointer: Phaser.Input.Pointer;
+
+let lastKeyDebouncer = ""; //
+let recorderMode = "?";
+let foo = 1;
+let recording = "";
+let actions: [string, number, number, number][] = [["BOJ", 0, 0, 0]];
+let nextActionTime = 0;
+let recordingEndedFadeClicks = 0;
 
 class PlayGame extends Phaser.Scene {
 
@@ -171,15 +180,17 @@ class PlayGame extends Phaser.Scene {
         this.load.image('takeMask', 'assets/sprites/takeMask.png');
         this.load.image('objectMask', 'assets/sprites/object mask.png');
         this.load.image('keyMask', 'assets/sprites/keyMask.png');
-        this.load.image('doorMask', 'assets/sprites/doorMask.png')
+        this.load.image('doorMask', 'assets/sprites/doorMask.png');
+        this.load.image('hintMask', 'assets/sprites/hintMask.png');
 
         this.load.image('testplateShown', 'assets/sprites/closePlate.png');
         this.load.image('testplateIcon', 'assets/sprites/icon - plate.png');
     }
 
     create() {
-        this.input.on('gameobjectdown', function (pointer:Phaser.Input.Pointer, gameObject:Phaser.GameObjects.GameObject) {
-            recorder.recordObjectDown((gameObject as Phaser.GameObjects.Sprite).texture.key);
+        let scene = this;
+        this.input.on('gameobjectdown', function (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) {
+            recorder.recordObjectDown((gameObject as Phaser.GameObjects.Sprite).texture.key, scene);
         });
 
         /*
@@ -202,16 +213,14 @@ class PlayGame extends Phaser.Scene {
         text.setMask(mask);
         text.setDepth(5000)
         */
-        
-        // Recorder stuff
+
         myViewport = this.add.image(0, 0, 'myViewport').setOrigin(0, 0);
         viewportPointer = this.add.sprite(1000, 0, 'clckrLoc').setOrigin(0, 0);
         viewportPointerClick = this.add.sprite(1000, 0, 'clckrClk');
         recorder = new Recorder(this.input.activePointer, viewportPointer, viewportPointerClick);
         viewportPointer.setDepth(3001);
         viewportPointerClick.setDepth(3001);
-        pointer = this.input.activePointer;        
-
+        pointer = this.input.activePointer;
 
         slots = new Slots(this, "iconEmpty", "iconSelected", "iconSelectedSecond", recorder);
         slots.displaySlots();
@@ -224,13 +233,6 @@ class PlayGame extends Phaser.Scene {
         plusButton = this.add.sprite(80, 950, 'plus');
         failed = this.add.sprite(80, 950, 'fail');
 
-        //  Enables all kind of input actions on this image (click, etc)
-        // I tried this for recorder, no dice.
-        /*
-backButton.inputEnabled = true;
-this.position = new Phaser.Point();
-backButton.events.onInputDown.add(listener, this);
-*/
         rightButton.on('pointerdown', () => {
             viewWall++;
             if (viewWall > 3)
@@ -241,21 +243,21 @@ backButton.events.onInputDown.add(listener, this);
             if (viewWall < 0)
                 viewWall = 3;
         });
-/*
-        //elsewhere
-        switch(recordedAction) { 
-            case "rightButton": { 
-                rightButton.emit('pointerdown');
-               break; 
-            } 
-            case "leftButton": { 
-                leftButton.emit('pointerdown'); 
-               break; 
-            } 
-         } 
-*/         
-         
-         
+        /*
+                //elsewhere
+                switch(recordedAction) { 
+                    case "rightButton": { 
+                        rightButton.emit('pointerdown');
+                       break; 
+                    } 
+                    case "leftButton": { 
+                        leftButton.emit('pointerdown'); 
+                       break; 
+                    } 
+                 } 
+        */
+
+
         backButton.on('pointerdown', () => {
             //slots.clickIcon("iconDonut");   // here's how we click an icon!
 
@@ -314,11 +316,14 @@ backButton.events.onInputDown.add(listener, this);
         });
 
 
-        takeItemMask = this.add.sprite(155, 530, 'takeMask').setOrigin(0, 0);
+        hintMask = this.add.sprite(110, 446, 'hintMask').setOrigin(0, 0);
+        hintMask.on('pointerdown', () => {
+            console.log("HINT");
+        });
 
         // Add item to inventory list when picked up. In this test it's easy, just 3 stacked items.
         // Add it and then remove from view and flag for an update.
-        
+        takeItemMask = this.add.sprite(155, 530, 'takeMask').setOrigin(0, 0);
         takeItemMask.on('pointerdown', () => {
             if (tableState < 3) {
                 slots.addIcon(this, icons[tableState].toString(), obj[tableState], altObj[tableState]); // TODO: get name from sprite
@@ -328,7 +333,6 @@ backButton.events.onInputDown.add(listener, this);
                 updateWall = true;
             }
         });
-        
 
         viewTableMask = this.add.sprite(440, 615, 'tableMask').setOrigin(0, 0);
         viewTableMask.on('pointerdown', () => {
@@ -379,6 +383,26 @@ backButton.events.onInputDown.add(listener, this);
         viewportText = this.add.text(10, 10, '');
         viewportText.setDepth(3001); // TODO: rationalize the crazy depths!
 
+        recorderMode = recorder.getMode();
+        console.log("Recordermode: " + recorderMode);
+        if (recorderMode == "replay") {
+            recording = recorder.getRecording();
+            console.log("REPLAY");
+
+            const actionString = recording.split(":");
+            actionString.forEach((action, idx) => {
+                //console.log(action.length);
+                if (action.length > 0) {
+                    let splitAction = action.split(',');
+                    actions.push([splitAction[0], parseInt(splitAction[1], 10), parseInt(splitAction[2], 10), parseInt(splitAction[3], 10)]);
+                }
+            });
+            actions = actions.slice(1); // drop the first element, just used to instantiate the array
+            nextActionTime = actions[0][3];
+            console.log("first action at " + nextActionTime);
+            //console.log(actions);
+        }
+
         // What is typescript type for this?!
         /*
                 style = {
@@ -392,15 +416,214 @@ backButton.events.onInputDown.add(listener, this);
         */
     }
 
+    /* 
+        handleKey(e) {
+            var timeKey = this.time.now;
+            console.log(`key: ${timeKey} code ${e.code}`);
+            // The escape game doesn't use keyboard input for anything but recording, yet!
+
+            // if (e.code != "KeyX" && e.code != "Backslash" && e.code != "Backquote" && e.code != "Minus") {
+            //     if (this.simulator.getMode() == "record")
+            //        this.simulator.record(timeKey, e.code);
+            //    this.doKey(e.code);
+            // } else {
+                       
+                switch (e.code) {
+                    case "Backquote":
+                        console.log("begin recording");
+                        this.simulator.reset();
+                        this.simulator.setMode("record");
+                        window.location.reload(false);
+                        break;
+                    case "KeyX":
+                        console.log("stop recording");
+                        this.simulator.putRecording();
+                        this.simulator.setMode("play");
+                        //window.location.reload(false);
+                        break;
+                    case "Minus":
+                        console.log("replay recording");
+                        this.simulator.setMode("play-perfect");
+                        window.location.reload(false);
+                        break;
+                    case "Backslash":
+                        console.log("quit replay");
+                        this.simulator.setMode("idle");
+                        break;
+                }
+            }
+                        
+        }
+        */
+
+    handleKey(event: KeyboardEvent) {
+        if (event.key == lastKeyDebouncer)
+            return;
+        //console.log("keycode " + event.key)
+        lastKeyDebouncer = event.key;
+
+        switch (event.key) {
+            case "F1":
+                console.log("new recording");
+                recorder.setMode("record")
+                window.location.reload();
+                break;
+            case "`":
+                console.log("play recording");
+                recorder.setMode("replay")
+                window.location.reload();
+                break;
+            case "Escape":
+                console.log("quit recorder");
+                recorder.setMode("idle")
+                recorderMode = "idle";
+                //window.location.reload();
+                break;
+        }
+    }
+
     update() {
+
+        //this.input.keyboard.on("keyup", this.handleKey, this);
+        //this.input.keyboard.on('keyup', this.tsKey(), this);
+
+        /*        
+                this.input.keyboard.on('keyup', function (event) {
+        
+                    if (event.keyCode === 37)
+                    {
+                        //  left
+                        if (cursor.x > 0)
+                        {
+                            cursor.x--;
+                            block.x -= 52;
+                        }
+                    }
+                    else if (event.keyCode === 39)
+                    {
+                        //  right
+                        if (cursor.x < 9)
+                        {
+                            cursor.x++;
+                            block.x += 52;
+                        }
+                    }        
+        */
+        /*
+                this.input.keyboard.on('keyup', function (event: KeyboardEvent) {
+                    //console.log(event);
+                    //console.log(event.key);
+                    if (event.key != lastKeyDebouncer) {
+                        console.log("FIRE " + event.key)
+                        lastKeyDebouncer = event.key;
+                    }
+                });
+        */
+        this.input.keyboard.on('keydown', this.handleKey);
+
+
+
+
+        //console.dir(this);
+
+
         viewportText.setText([
             'x: ' + pointer.worldX,
             'y: ' + pointer.worldY,
             'rightButtonDown: ' + pointer.rightButtonDown(),
-            'isDown: ' + pointer.isDown
+            'isDown: ' + pointer.isDown,
+            'time: ' + this.time.now
         ]);
-        recorder.fixPointer(this.input.activePointer)
-        recorder.checkPointer(this);
+        if (recorderMode == "record") {
+            recorder.fixPointer(this.input.activePointer)
+            recorder.checkPointer(this);
+        } else if (recorderMode == "replay") {
+            //console.log("action " + nextActionTime + "now " + this.time.now)
+            //console.log("replay " + actions[0]);
+            //console.log(" at " + actions[0][3]);
+            if (this.time.now >= nextActionTime) {
+                let replayAction = actions[0][0];
+                if (replayAction == "mouseclick") {
+                    viewportPointer.setX(actions[0][1]);
+                    viewportPointer.setY(actions[0][2]);
+                    recorder.showClick(this, actions[0][1], actions[0][2]);
+                } else if (replayAction == "mousemove") {
+                    viewportPointer.setX(actions[0][1]);
+                    viewportPointer.setY(actions[0][2]);
+                } else {
+
+                    console.log("GOGO " + actions[0][0]);
+                    let target = actions[0][0];
+                    let targetType = target.split('=')[0];
+                    let targetObject = target.split('=')[1];
+                    if (targetType == "object") {
+                        console.log("do object " + targetObject);
+                        //elsewhere
+                        switch (targetObject) {
+                            case "right": {
+                                rightButton.emit('pointerdown');
+                                break;
+                            }
+                            case "left": {
+                                leftButton.emit('pointerdown');
+                                break;
+                            }
+                            case "down": {
+                                backButton.emit('pointerdown');
+                                break;
+                            }
+                            case "tableMask": {
+                                viewTableMask.emit('pointerdown');
+                                break;
+                            }
+                            case "takeMask": {
+                                takeItemMask.emit('pointerdown');
+                                break;
+                            }
+                            case "objectMask": {
+                                objectMask.emit('pointerdown');
+                                break;
+                            }
+                            case "keyMask": {
+                                keyMask.emit('pointerdown');
+                                break;
+                            }
+                            case "doorMask": {
+                                viewDoorMask.emit('pointerdown');
+                                break;
+                            }
+
+                           
+                            default: {
+                                console.log("WHAT IS? " + targetObject);
+                            }
+                        }
+
+                    } else if (targetType == "icon") {
+                        console.log("do icon " + targetObject);
+                        slots.recordedClickIt(targetObject);   // here's how we click an icon!
+                    }
+                }
+
+                actions = actions.slice(1);
+                //console.log(actions.length);
+                if (actions.length == 0) {
+                    console.log("recorder EOJ")
+                    recorderMode = "idle";
+                    recordingEndedFadeClicks = 20;
+                } else {
+                    nextActionTime += actions[0][3];
+                }
+            }
+            recorder.fadeClick(this);
+            //console.log("REPLAY STUFF");
+            //console.log(actions);
+        }
+        //console.log("MODE IS " + recorderMode)
+        if (recordingEndedFadeClicks-- > 0) {
+            recorder.fadeClick(this);
+            viewportPointer.setX(1000);
+        }
 
         if (showXtime > 0) {
             if ((this.time.now - showXtime) > 500) {
@@ -491,8 +714,6 @@ backButton.events.onInputDown.add(listener, this);
                 return;
             }
 
-
-
             slots.currentMode = "room";
             if (viewWall > -1) { //?
                 if (doorUnlocked && viewWall == 0) {
@@ -530,6 +751,12 @@ backButton.events.onInputDown.add(listener, this);
             } else {
                 viewTableMask.setVisible(false);
                 viewDoorMask.setVisible(false);
+            }
+
+            if (viewWall == 2) {
+                hintMask.setVisible(true); hintMask.setDepth(100); hintMask.setInteractive();
+            } else {
+                hintMask.setVisible(false);
             }
 
             if (viewWall == 4) {

@@ -31,11 +31,15 @@ class InvItem {
     }
 
     clickIt() {
-        console.log("ICON CLICK!!")
+        console.log("ICON CLICK!! " + this.name);
         //console.log(this);
         //console.log(this.name);
         //console.log((this.iconSprite as Phaser.GameObjects.Sprite).texture.key)
-        this.recorder.recordIconClick(this.name)
+        
+        //this.recorder.recordIconClick(this.name, this.scene);
+        this.recorder.recordIconClick((this.iconSprite as Phaser.GameObjects.Sprite).texture.key, this.scene);
+
+        console.log("GOOD NAME " + (this.iconSprite as Phaser.GameObjects.Sprite).texture.key)
         let prevItem = -1;
         this.allSlots.slotArray.forEach((icon, idx) => {
             if (icon.selected)
@@ -121,12 +125,18 @@ export default class Slots {
         
     }
 //recorder will use this:
-    clickIcon(iconName: string) {
+    recordedClickIt(iconName: string) {
         console.log("DO ICON CLICK " + iconName);
-        console.log(this);
-        console.log(this.slotArray[1].iconSprite);
-        this.slotArray[1].iconSprite.emit('pointerdown'); // selects the icon at position
-        //rightButton.emit('pointerdown');
+        //console.log(this);
+        //console.log(this.slotArray[1].iconSprite);
+        let clickIndex = -1;
+        this.slotArray.forEach((icon, idx) => {
+            console.log("  iconsArray " + icon);
+            console.log(icon);
+            if ((this.slotArray[idx].iconSprite as Phaser.GameObjects.Sprite).texture.key == iconName)
+                clickIndex = idx;
+        });
+        this.slotArray[clickIndex].iconSprite.emit('pointerdown'); // selects the icon at position
     }
     
     addIcon(scene:Phaser.Scene, iconSpriteName: string, objectView: string, altObjectView: string) {

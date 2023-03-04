@@ -17,6 +17,7 @@ export default class Recorder {
     clickers: Phaser.GameObjects.Sprite[] = [];
 
     recording: string;
+    recorderMode: string; // try everything
 
     constructor(pointer: Phaser.Input.Pointer,
         pointerSprite: Phaser.GameObjects.Sprite,
@@ -26,6 +27,23 @@ export default class Recorder {
         this.clickSprite = clickSprite;
         this.oldPointerX = 0; this.oldPointerY = 0;
         this.recording = "";
+    }
+
+    setMode(mode:string) {
+        console.log("MODE: " + mode);
+        this.recorderMode = mode;
+        setCookie("escapeRecorderMode", mode, 7); // bake for a week
+    };
+    
+    getMode() {
+        let mode = getCookie("escapeRecorderMode");
+        if (mode == undefined || mode.length==0) {
+            mode="init";
+        }
+
+        this.recorderMode = mode;
+        console.log("got mode " + mode);
+        return mode;
     }
 
     // This is terrible, but I don't know how to fix it. Need to update the pointer on mobile,
@@ -41,27 +59,25 @@ export default class Recorder {
 
         this.fadeClick(scene);
 
-        if (this.pointer.isDown) {
-            if (this.pointer.rightButtonDown()) {
-                console.log("right click")
-            } else 
-                console.log("left click")
-        }
-
-        if (this.oldPointerDown != this.pointer.isDown && !this.pointer.rightButtonDown()) {
+        if (this.oldPointerDown != this.pointer.isDown) {
             this.oldPointerDown = this.pointer.isDown;
             if (this.oldPointerDown) {
-                console.log("CLICKED")
                 pointerClicked = true;
+                console.log("CLICK AT " + this.pointer.x + ',' + this.pointer.y);
             }
         }
+        // RIGHT CLICK CHECK
+        //if (pointerClicked && this.pointer.rightButtonDown()) {
+        //    this.getRecording();
+        //    return;
+        //}
 
         let pointerTime = scene.time.now - this.oldPointerTime;
         if (this.oldPointerX != this.pointer.worldX || this.oldPointerY != this.pointer.worldY || pointerTime > 1000 || pointerClicked) {
             let distanceX = Math.abs(this.pointer.worldX - this.oldPointerX);
             let distanceY = Math.abs(this.pointer.worldY - this.oldPointerY);
-
-            if ((distanceX + distanceY > 500) || (pointerTime > 1200) || pointerClicked) {
+            // 500 resolution is sufficient?
+            if ((distanceX + distanceY > 100) || (pointerTime > 1200) || pointerClicked) {
                 this.oldPointerX = this.pointer.worldX;
                 this.oldPointerY = this.pointer.worldY;
                 this.pointerSprite.setX(this.pointer.worldX);
@@ -78,7 +94,7 @@ export default class Recorder {
 
         if (pointerClicked) {
             this.recordAction(scene, "mouseclick");
-            this.showClick(scene);
+            this.showClick(scene, this.pointer.x, this.pointer.y);
             pointerClicked = false;
             this.dumpRecording();
         }
@@ -89,15 +105,46 @@ export default class Recorder {
         //console.log(`RECORDER ${action} ${Math.floor(this.pointer.x)}, ${Math.floor(this.pointer.y)} @ ${scene.time.now}`)
         this.recording = this.recording.concat(`${action},${Math.floor(this.pointer.x)},${Math.floor(this.pointer.y)},${scene.time.now}:`);
     }
-    recordObjectDown(object: string) {
+    // everything would be so much easier if we had a scene here!! NO SHIT I GOT IT
+    recordObjectDown(object: string, scene: Phaser.Scene) {
         console.log(`RECORDER OBJECT ${object}`);
-        this.recording = this.recording.concat(`object=${object},${Math.floor(this.pointer.x)},${Math.floor(this.pointer.y)}:`);
+        //console.log(scene.time.now);
+        this.recording = this.recording.concat(`object=${object},${Math.floor(this.pointer.x)},${Math.floor(this.pointer.y)},${scene.time.now}:`);
     }
-    recordIconClick(object: string) {
+    recordIconClick(object: string, scene: Phaser.Scene) {
         console.log(`RECORDER ICON CLICK ${object}`);
-        this.recording = this.recording.concat(`icon=${object},${Math.floor(this.pointer.x)},${Math.floor(this.pointer.y)}:`);
+        this.recording = this.recording.concat(`icon=${object},${Math.floor(this.pointer.x)},${Math.floor(this.pointer.y)},${scene.time.now}:`);
         //console.log(this.recording);
 
+    }
+
+    getRecording() {
+        let cookieNumber = -1;
+        let eof = "";
+        let recordingIn = "";
+        while (eof == "") {
+            cookieNumber++;
+            let cookie = getCookie("test" + cookieNumber);
+            recordingIn += cookie.split('|')[0];;
+            eof = cookie.split('|')[1];
+        }
+        //console.log(recordingIn);
+        let recInCheck = recordingIn.split('?')[0];
+        let recInVersion = recordingIn.split('?')[2];
+        let recIn = recordingIn.split('?')[1];
+        let re = /mousemove,/g; recIn = recIn.replace(re, "#");
+        re = /#/g; recIn = recIn.replace(re, "mousemove,");
+        re = /!/g; recIn = recIn.replace(re, "mouseclick,");
+        re = /=/g; recIn = recIn.replace(re, "object=");
+        re = /\-/g; recIn = recIn.replace(re, "icon=");
+
+        if (recInCheck == this.checksum(recIn)) {
+            //console.log("Good recording " + recIn);
+        } else {
+            console.log("ERROR bad recording!");
+            recIn = "ERROR";
+        }
+        return recIn;        
     }
     dumpRecording() {
         const rec = this.recording.split(":");
@@ -107,8 +154,10 @@ export default class Recorder {
         // struggling with TS arrays https://dpericich.medium.com/how-to-build-multi-type-multidimensional-arrays-in-typescript-a9550c9a688e
         let actions: [string, number, number, number][] = [["BOJ", 0, 0, 0]];
 
+        //console.log(rec);
         rec.forEach((action, idx) => {
             let thisActionRec = rec[idx];
+            //console.log("RAW " + thisActionRec);
             let nextActionRec = rec[idx + 1] ?? "";   //Typescript check undefined and fix it up
             const secondLookahead = rec[idx + 2] ?? "";
 
@@ -147,8 +196,9 @@ export default class Recorder {
 
         // Must throw out redundant stuff. Find these and mark time as 0.
         // Perhaps could clean up the input recorded actions but let's just fix them here
+        // It's a big mess that calls for a do-over on all of this but for now it is what it is
         actions.forEach((action, idx) => {
-            //console.log(action);
+            //console.log("ACT " + action);
             if (idx < actions.length - 1) {
                 const nextAction = actions[idx + 1];
                 //console.log(action[3] + " " + nextAction[3])
@@ -168,23 +218,23 @@ export default class Recorder {
         let prevTime = 0;
         let elapsed = 0;
         actions.forEach((action, idx) => {
-            //console.log(`Action ${action}  time ${action[3]}`);
+            //console.log(`ActionIn ${action}  time ${action[3]}`);
             if (action[3] > 0) {
                 elapsed = action[3] - prevTime;
                 prevTime = action[3];
-                //console.log(`ActioX ${action}  time ${action[3]}  elapsed ${elapsed}`);
+                //console.log(`>> ${action}  time ${action[3]}  elapsed ${elapsed}`);
                 recOut = recOut.concat(`${action[0]},${action[1]},${action[2]},${elapsed}:`);
             }
         });
 
         const recording = recOut;
-        console.log(recOut);
+        //console.log("Save: " + recOut);
         let re = /mousemove,/g; recOut = recording.replace(re, "#");
         re = /mouseclick,/g; recOut = recOut.replace(re, "!");
         re = /object=/g; recOut = recOut.replace(re, "=");
         re = /icon=/g; recOut = recOut.replace(re, "\-");
         recOut = this.checksum(recording) + "?" + recOut + "?v1";
-        console.log("OUT " + recOut);
+        //console.log("OUT " + recOut);
         this.saveCookies(recOut);
 
         //const stringified = stringify(recOut);
@@ -193,7 +243,7 @@ export default class Recorder {
         //console.log("str  " + stringified.length);
 
 
-
+/*
         //let recOutString = JSON.stringify(recOut);
         //console.log(recOutString);
         //console.log("json string length " + recOutString.length)
@@ -214,30 +264,25 @@ export default class Recorder {
         } else {
             console.log("ERROR");
         }
-
-        //console.log("cksum " + this.checksum(recOutString));
-        //console.log (recOutCompressedString);
+*/        
     }
 
-    saveCookies(data:string) {
+    saveCookies(data: string) {
         const cookieName = "test";
-        //console.log("cookie length " + data.length) // max 4096
         // must split if too big
-        let chunked = this.chunkString(data, 80);
+        let chunked = this.chunkString(data, 4080); // max 4096
         chunked!.forEach((chunk, idx) => {
             chunked![idx] += "|"
         });
-        chunked![chunked!.length-1] += "EOF"; // https://timmousk.com/blog/typescript-object-is-possibly-null/
+        chunked![chunked!.length - 1] += "EOF"; // https://timmousk.com/blog/typescript-object-is-possibly-null/
         //console.log(chunked);
         chunked!.forEach((chunk, idx) => {
-            let cookieNameOut = cookieName;
-            if (idx > 0)
-            cookieNameOut += idx;
-            //console.log(cookieNameOut + ":" + chunk);
-            setCookie(cookieNameOut, chunk, 1); // bake for a week
-        });        
+            let cookieNameOut = cookieName + idx;
+            //console.log("COOKIEOUT " + cookieNameOut + ":" + chunk);
+            setCookie(cookieNameOut, chunk, 7); // bake for a week
+        });
 
-        
+
     }
 
     chunkString(str: string, length: number) {
@@ -255,19 +300,20 @@ export default class Recorder {
         return (chk & 0xffffffff).toString(16);
     }
 
-    showClick(scene: Phaser.Scene) {
+    showClick(scene: Phaser.Scene, x: number, y: number) {
         const config = {
             key: 'clckrClk',
             scale: 3
         };
 
         var newSprite = scene.make.sprite(config);
-        newSprite.setX(this.pointer.x); newSprite.setY(this.pointer.y);
-        if (this.pointer.x == this.prevClickX && this.pointer.y == this.prevClickY) {
+        newSprite.setX(x); newSprite.setY(y);
+        if (x == this.prevClickX && y == this.prevClickY) {
             newSprite.setScale(5);
         }
         this.clickers.push(newSprite);
-        this.prevClickX = this.pointer.x; this.prevClickY = this.pointer.y;
+        console.log("CLICKERCOUNT " + this.clickers.length)
+        this.prevClickX = x; this.prevClickY = y;
         newSprite.setDepth(3000);
     }
 
