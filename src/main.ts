@@ -9,13 +9,16 @@
  * - Sound
  * - Fireworks on winner screen
  * - Fade scene in
+ * 
+ * Scratch-off ticket https://blog.ourcade.co/posts/2020/phaser-3-object-reveal-scratch-off-alpha-mask/
  */
 
 import 'phaser';
 
 import Slots from "./objects/slots"
 import Recorder from "./objects/recorder"
-import { setCookie, getCookie, eraseCookie } from "./utils/cookie";
+
+let debugUpdateOnce = false;
 
 var viewWall = 4;
 
@@ -74,7 +77,322 @@ let nextActionTime = 0;
 let recordingEndedFadeClicks = 0;
 let debugging = false;
 
+
+var content = [
+    "The sky above the port was the color of television, tuned to a dead channel.",
+    "'It's not like I'm using,' Case heard someone say, as he shouldered his way ",
+    "through the crowd around the door of the Chat. 'It's like my body's developed ",
+    "this massive drug deficiency.' It was a Sprawl voice and a Sprawl joke."
+];
+var contentString =
+    "The sky above the port was the color of television, tuned to a dead channel." +
+    "'It's not like I'm using,' Case heard someone say, as he shouldered his way " +
+    "through the crowd around the door of the Chat. 'It's like my body's developed " +
+    "this massive drug deficiency.' It was a Sprawl voice and a Sprawl joke."
+
+
+
 class PlayGame extends Phaser.Scene {
+    update() {
+
+        this.input.keyboard.on('keydown', this.handleKey);
+        //console.log("rightright");
+        if (this.input.activePointer.rightButtonDown()) {
+            this.showRecording();
+        }
+
+        
+        if (debugUpdateOnce) {
+            debugUpdateOnce = false;
+            //var txt = this.add.rexCanvasInput(50, 150, 100, 200, config);
+            this.showRecording();
+            return;
+
+        }
+        
+
+        if (debugging || recorderMode == "record" || recorderMode == "replay") {
+            let debugAction = "RECORDING";
+            if (recorderMode == "replay")
+                debugAction = "REPLAY"
+            viewportText.setText([
+                'x: ' + pointer.worldX,
+                'y: ' + pointer.worldY,
+                'rightButtonDown: ' + pointer.rightButtonDown(),
+                'isDown: ' + pointer.isDown,
+                '',
+                debugAction + '  time: ' + Math.floor(this.time.now) + '   length: ' + recorder.getSize()
+            ]);
+        }
+        if (recorderMode == "record") {
+            recorder.fixPointer(this.input.activePointer)
+            recorder.checkPointer(this);
+        } else if (recorderMode == "replay") {
+            //console.log("action " + nextActionTime + "now " + this.time.now)
+            //console.log("replay " + actions[0]);
+            //console.log(" at " + actions[0][3]);
+            if (this.time.now >= nextActionTime) {
+                let replayAction = actions[0][0];
+                if (replayAction == "mouseclick") {
+                    viewportPointer.setX(actions[0][1]);
+                    viewportPointer.setY(actions[0][2]);
+                    recorder.showClick(this, actions[0][1], actions[0][2]);
+                } else if (replayAction == "mousemove") {
+                    viewportPointer.setX(actions[0][1]);
+                    viewportPointer.setY(actions[0][2]);
+                } else {
+                    let target = actions[0][0];
+                    let targetType = target.split('=')[0];
+                    let targetObject = target.split('=')[1];
+                    if (targetType == "object") {
+                        //console.log("do object " + targetObject);
+                        //elsewhere
+                        switch (targetObject) {
+                            case "right": {
+                                rightButton.emit('pointerdown');
+                                break;
+                            }
+                            case "left": {
+                                leftButton.emit('pointerdown');
+                                break;
+                            }
+                            case "down": {
+                                backButton.emit('pointerdown');
+                                break;
+                            }
+                            case "tableMask": {
+                                viewTableMask.emit('pointerdown');
+                                break;
+                            }
+                            case "takeMask": {
+                                takeItemMask.emit('pointerdown');
+                                break;
+                            }
+                            case "objectMask": {
+                                objectMask.emit('pointerdown');
+                                break;
+                            }
+                            case "keyMask": {
+                                keyMask.emit('pointerdown');
+                                break;
+                            }
+                            case "doorMask": {
+                                viewDoorMask.emit('pointerdown');
+                                break;
+                            }
+                            case "hintMask": {
+                                hintMask.emit('pointerdown');
+                                break;
+                            }
+
+
+                            default: {
+                                console.log("WHAT IS? " + targetObject);
+                            }
+                        }
+
+                    } else if (targetType == "icon") {
+                        console.log("do icon " + targetObject);
+                        slots.recordedClickIt(targetObject);   // here's how we click an icon!
+                    }
+                }
+
+                actions = actions.slice(1);
+                //console.log(actions.length);
+                if (actions.length == 0) {
+                    console.log("recorder EOJ")
+                    recorderMode = "idle";
+                    viewportText.setDepth(-1);
+                    recordingEndedFadeClicks = 20;
+                } else {
+                    nextActionTime += actions[0][3];
+                }
+            }
+            recorder.fadeClick(this);
+            //console.log("REPLAY STUFF");
+            //console.log(actions);
+        }
+        //console.log("MODE IS " + recorderMode)
+        if (recordingEndedFadeClicks-- > 0) {
+            recorder.fadeClick(this);
+            viewportPointer.setX(1000);
+        }
+        if (slots.fakeClicks == 3) {
+            console.log("BRING THE ROACH");
+            slots.clearItem(this, "fake");
+            slots.fakeClicks = -1;
+            slots.addIcon(this, icons[6].toString(), obj[6], altObj[6], 5); // roach
+        }
+
+        if (showXtime > 0) {
+            if ((this.time.now - showXtime) > 500) {
+                showXtime = -1;
+                failed.setDepth(-1);
+            }
+        }
+
+        if (slots.inventoryView) {
+            slots.currentMode = "item"; // so slots object knows what is happening - needed?!
+            if (viewWall < 5)
+                previousWall = viewWall;
+            keyMask.setVisible(false);
+            if (haveHalfKey && slots.inventoryViewAlt == "altobjPlateKey") {
+                slots.inventoryViewAlt = "altobjPlateEmpty";
+            }
+            if (snagged) {
+                currentWall = 5; flipIt = true;
+                snagged = false;
+                slots.inventoryViewAlt = "altobjPlateEmpty";
+            }
+            if (currentWall == 5 && flipIt) {
+                this.add.image(0, 0, slots.inventoryViewAlt).setOrigin(0, 0);
+                viewWall = 6; currentWall = 6;
+                // only make the piece available if seen...
+                if (foundHalfKey && !haveHalfKey) {
+                    keyMask.setVisible(true); keyMask.setDepth(200); keyMask.setInteractive({ cursor: 'pointer' });
+                }
+            } else {
+                this.add.image(0, 0, slots.inventoryViewObj).setOrigin(0, 0);
+                viewWall = 5; currentWall = 5;
+                //console.log("IDLE IT? OR REPLAY");
+                if (slots.inventoryViewObj == "objRoach") {
+                    if (recorderMode == "record") {
+                        recorder.setMode("replay");
+                        window.location.reload();
+                    } else {
+                        // TODO write proper exit function, called twice and did it here wrongly
+                        recorder.setMode("idle")
+                        recorderMode = "idle";
+                        viewportText.setDepth(-1);
+                        recordingEndedFadeClicks = 20;
+                    }
+                }
+            }
+            flipIt = false;
+
+            invBar.setDepth(100);
+            slots.inventoryView = false;
+
+            leftButton.setVisible(false);
+            rightButton.setVisible(false);
+            backButton.setVisible(true); backButton.setDepth(100); backButton.setInteractive({ cursor: 'pointer' });
+
+            /* Will fix combinations, after recorder...
+                        if (slots.otherViewObj.length > 0) {
+                            plusButton.setVisible(true); plusButton.setDepth(110); plusButton.setInteractive();
+                        } else {
+                            plusButton.setVisible(false);
+                        }
+            */
+
+            takeItemMask.setVisible(false);
+            viewTableMask.setVisible(false);
+            viewDoorMask.setVisible(false);
+
+            objectMask.setVisible(true);
+            objectMask.setDepth(100);
+            objectMask.setInteractive({ cursor: 'pointer' });
+            //objectMask.input.cursor = 'url(assets/input/cursors/pen.cur), pointer';
+
+        } else if ((viewWall != currentWall || updateWall)) {
+            if (egress) {
+                this.add.image(0, 0, walls[8]).setOrigin(0, 0);
+                leftButton.setVisible(false);
+                rightButton.setVisible(false);
+                currentWall = viewWall;
+                updateWall = false;
+                var sentence = "Nice job slugger!\nTry it again for the bonus?\nJust reload the page";
+                if (didBonus) {
+                    var bonus = this.add.image(360, 800, "winnerDonut")
+                    //bonus.setScale(3);
+                    sentence = "You did it :)\nThanks for testing!";
+                } else {
+                    failed.setVisible(true);
+                    failed.setDepth(400);
+                    failed.setX(360); failed.setY(800);
+                }
+
+                const style = 'margin: auto; background-color: black; color:white; width: 520px; height: 100px; font: 40px Arial';
+                this.add.dom(350, 1100, 'div', style, sentence);
+
+                invBar.setDepth(0);
+                slots.clearAll(this);
+                takeItemMask.setVisible(false);
+                viewTableMask.setVisible(false);
+                viewDoorMask.setVisible(false);
+
+                updateWall = false;
+                viewWall = currentWall;
+
+                recorder.setMode("idle")
+                recorderMode = "idle";
+                viewportText.setDepth(-1);
+
+                return;
+            }
+
+            slots.currentMode = "room";
+            if (viewWall > -1) { //?
+                if (doorUnlocked && viewWall == 0) {
+                    this.add.image(0, 0, walls[7]).setOrigin(0, 0);
+                } else {
+                    this.add.image(0, 0, walls[viewWall]).setOrigin(0, 0);
+                }
+            }
+
+            // need to build out hint system
+            if (viewWall == 9)
+                previousWall = 2;
+
+            slots.displaySlots(); // TODO: is this really required every time the wall changes?
+            invBar.setDepth(100); // TODO: surely no.
+            currentWall = viewWall;
+            updateWall = false;
+
+            if (viewWall == 0)
+                this.add.sprite(540, 650, tableView[tableState]).setOrigin(0, 0);
+            if (viewWall == 4)
+                this.add.sprite(176, 532, closeView[tableState]).setOrigin(0, 0);
+
+            if (viewWall > 3) { // viewing table not room wall, or inventory view
+                leftButton.setVisible(false);
+                rightButton.setVisible(false);
+                backButton.setVisible(true); backButton.setDepth(100); backButton.setInteractive({ cursor: 'pointer' });
+            } else {
+                leftButton.setVisible(true); leftButton.setDepth(100); leftButton.setInteractive({ cursor: 'pointer' });
+                rightButton.setVisible(true); rightButton.setDepth(100); rightButton.setInteractive({ cursor: 'pointer' });
+                backButton.setVisible(false);
+            }
+
+            plusButton.setVisible(false);
+
+            if (viewWall == 0) {
+                viewTableMask.setVisible(true); viewTableMask.setDepth(100); viewTableMask.setInteractive({ cursor: 'pointer' });
+                viewDoorMask.setVisible(true); viewDoorMask.setDepth(100); viewDoorMask.setInteractive({ cursor: 'pointer' });
+
+                //viewDoorMask.input.cursor = 'url(assets/input/cursors/pen.cur), pointer';
+                viewDoorMask.input.cursor = 'pointer';
+            } else {
+                viewTableMask.setVisible(false);
+                viewDoorMask.setVisible(false);
+            }
+
+            if (viewWall == 2) {
+                hintMask.setVisible(true); hintMask.setDepth(100); hintMask.setInteractive({ cursor: 'pointer' });
+            } else {
+                hintMask.setVisible(false);
+            }
+
+            if (viewWall == 4) { // the table
+                //takeItemMask.setVisible(true); takeItemMask.setDepth(100); takeItemMask.setInteractive();
+                //takeItemMask.input.cursor = 'url(assets/input/cursors/pen.cur), pointer';
+                takeItemMask.setVisible(true); takeItemMask.setDepth(100); takeItemMask.setInteractive({ cursor: 'pointer' });
+            } else {
+                takeItemMask.setVisible(false);
+            }
+            objectMask.setVisible(false);
+        }
+    }
 
     constructor() {
         super("PlayGame");
@@ -88,25 +406,37 @@ class PlayGame extends Phaser.Scene {
         });
 
         /*
-        var content = [
-            "The sky above the port was the color of television, tuned to a dead channel.",
-            "`It's not like I'm using,' Case heard someone say, as he shouldered his way ",
-            "through the crowd around the door of the Chat. `It's like my body's developed",
-            "this massive drug deficiency.' It was a Sprawl voice and a Sprawl joke."
-        ];        
+                // So weird and frustrating. Uncomment this, observe the fillstyles go in backward
         
-        //var graphics = this.make.graphics();
-        var graphics = this.add.graphics({
-            x: 0,
-            y: 0
-          });
-        // graphics.fillStyle(0xffffff);
-        graphics.fillRect(152, 133, 320, 250);
-        var mask = new Phaser.Display.Masks.GeometryMask(this, graphics);
-        var text = this.add.text(160, 280, content, { fontFamily: 'Arial', color: '#00ff00', wordWrap: { width: 310 } }).setOrigin(0);
-        text.setMask(mask);
-        text.setDepth(5000)
+                const chatIntroText = this.add.text(100, 100, "Add the text you want to use for testing purposes");
+                chatIntroText.setFixedSize(200, 0);
+                chatIntroText.setWordWrapWidth(chatIntroText.width);
+        
+                const chatTextMaskGraphic = this.add.graphics().setPosition(chatIntroText.x, chatIntroText.y);
+                chatTextMaskGraphic.fillRect(0, 0, chatIntroText.displayWidth, 400);
+                chatTextMaskGraphic.fillStyle(0x00008f) // IlTimido text is BLUE
+                chatIntroText.setMask(chatTextMaskGraphic.createGeometryMask());
+                chatTextMaskGraphic.setDepth(8000)
         */
+        // My test code:
+        /*        
+                var text = this.add.text(160, 460, content,
+                    { fontFamily: 'Arial', color: '#00ff00', wordWrap: { width: 310 } }).setOrigin(0);
+        
+                var graphics = this.add.graphics({
+                    x: 0,
+                    y: 0
+                });
+                graphics.fillRect(150, 450, 400, 250);
+                graphics.fillStyle(0x000000) // My test text is RED
+                graphics.setDepth(3000)
+                var mask = new Phaser.Display.Masks.GeometryMask(this, graphics);
+                var text = this.add.text(160, 460, content,
+                    { fontFamily: 'Arial', color: '#00ff00', wordWrap: { width: 310 } }).setOrigin(0);
+                text.setMask(mask);
+                text.setDepth(5000);
+        */
+
 
         myViewport = this.add.image(0, 0, 'myViewport').setOrigin(0, 0);
         viewportPointer = this.add.sprite(1000, 0, 'clckrLoc').setOrigin(0, 0);
@@ -294,7 +624,7 @@ class PlayGame extends Phaser.Scene {
         viewportText.setDepth(3001); // TODO: rationalize the crazy depths!
 
         recorderMode = recorder.getMode();
-        console.log("Recordermode: " + recorderMode);
+        //console.log("Recordermode: " + recorderMode);
         if (recorderMode == "replay") {
             recording = recorder.getRecording();
             console.log("REPLAY");
@@ -356,293 +686,66 @@ class PlayGame extends Phaser.Scene {
         }
     }
 
-    update() {
-        this.input.keyboard.on('keydown', this.handleKey);
+    showRecording() {
+        let style = 'background-color: #000000; color:white; width: 570px; height: 300px; font: 8px Monaco; font-family: "Lucida Console", "Courier New", monospace;';
+        this.add.dom(300, 250, 'div', style, recorder.getFormattedRecording(110));
+        //style = 'background-color: #000000; color:yellow; width: 570px; height: 90px; font: 20px Monaco; font-family: "Lucida Console", "Courier New", monospace;';
+        //this.add.dom(300, 50, 'div', style, "Please send this to Quazar. Copy and paste into email or whatevs... thank you!\n\ncallmerob@gmail.com");
 
-        if (debugging || recorderMode == "record" || recorderMode == "replay") {
-            let debugAction = "RECORDING";
-            if (recorderMode == "replay")
-                debugAction = "REPLAY"
-            viewportText.setText([
-                'x: ' + pointer.worldX,
-                'y: ' + pointer.worldY,
-                'rightButtonDown: ' + pointer.rightButtonDown(),
-                'isDown: ' + pointer.isDown,
-                '',
-                debugAction + '  time: ' + Math.floor(this.time.now) + '   length: ' + recorder.getSize()
-            ]);
-        }
-        if (recorderMode == "record") {
-            recorder.fixPointer(this.input.activePointer)
-            recorder.checkPointer(this);
-        } else if (recorderMode == "replay") {
-            //console.log("action " + nextActionTime + "now " + this.time.now)
-            //console.log("replay " + actions[0]);
-            //console.log(" at " + actions[0][3]);
-            if (this.time.now >= nextActionTime) {
-                let replayAction = actions[0][0];
-                if (replayAction == "mouseclick") {
-                    viewportPointer.setX(actions[0][1]);
-                    viewportPointer.setY(actions[0][2]);
-                    recorder.showClick(this, actions[0][1], actions[0][2]);
-                } else if (replayAction == "mousemove") {
-                    viewportPointer.setX(actions[0][1]);
-                    viewportPointer.setY(actions[0][2]);
-                } else {
-                    let target = actions[0][0];
-                    let targetType = target.split('=')[0];
-                    let targetObject = target.split('=')[1];
-                    if (targetType == "object") {
-                        //console.log("do object " + targetObject);
-                        //elsewhere
-                        switch (targetObject) {
-                            case "right": {
-                                rightButton.emit('pointerdown');
-                                break;
-                            }
-                            case "left": {
-                                leftButton.emit('pointerdown');
-                                break;
-                            }
-                            case "down": {
-                                backButton.emit('pointerdown');
-                                break;
-                            }
-                            case "tableMask": {
-                                viewTableMask.emit('pointerdown');
-                                break;
-                            }
-                            case "takeMask": {
-                                takeItemMask.emit('pointerdown');
-                                break;
-                            }
-                            case "objectMask": {
-                                objectMask.emit('pointerdown');
-                                break;
-                            }
-                            case "keyMask": {
-                                keyMask.emit('pointerdown');
-                                break;
-                            }
-                            case "doorMask": {
-                                viewDoorMask.emit('pointerdown');
-                                break;
-                            }
-                            case "hintMask": {
-                                hintMask.emit('pointerdown');
-                                break;
-                            }
+        var text = this.add.text(160, 460, content,
+            { fontFamily: 'Arial', color: '#00ff00', wordWrap: { width: 310 } }).setOrigin(0);
 
+        const beg = "Please share this with Quazar. Copy and paste\nto email or whatevs... Thank you!\n  escape@bitblaster.com"
+        text = this.add.text(32, 22, beg, { fontSize: '25px', fontFamily: 'Lucida Console', color: "#00ff00" });
+        text.setDepth(9000); // use bringToTop if in a container
 
-                            default: {
-                                console.log("WHAT IS? " + targetObject);
-                            }
-                        }
+/*
+        var graphics = this.add.graphics().setPosition(20, 0);
+        
+        graphics.fillRect(80, 300, 600, 250);
+        graphics.fillStyle(0xFF0000) // My test text is RED
+        graphics.setDepth(3000)
+        var mask = new Phaser.Display.Masks.GeometryMask(this, graphics);
+        var text = this.add.text(150, 460, beg,
+            { fontFamily: 'Lucida Console', color: '#00ff00', fontSize: '25px', wordWrap: { width: 700 } }).setOrigin(0,0);
+        text.setMask(mask);
+        text.setDepth(5000); 
+*/               
 
-                    } else if (targetType == "icon") {
-                        console.log("do icon " + targetObject);
-                        slots.recordedClickIt(targetObject);   // here's how we click an icon!
-                    }
-                }
+        var black = this.add.graphics({
+            x: 0,
+            y: 0
+        });
+        black.fillStyle(0x0f0000);
+        black.fillRect(0, 0, 720, 1280);
+        black.setDepth(3000);
 
-                actions = actions.slice(1);
-                //console.log(actions.length);
-                if (actions.length == 0) {
-                    console.log("recorder EOJ")
-                    recorderMode = "idle";
-                    viewportText.setDepth(-1);
-                    recordingEndedFadeClicks = 20;
-                } else {
-                    nextActionTime += actions[0][3];
-                }
-            }
-            recorder.fadeClick(this);
-            //console.log("REPLAY STUFF");
-            //console.log(actions);
-        }
-        //console.log("MODE IS " + recorderMode)
-        if (recordingEndedFadeClicks-- > 0) {
-            recorder.fadeClick(this);
-            viewportPointer.setX(1000);
-        }
-        if (slots.fakeClicks == 3) {
-            console.log("BRING THE ROACH");
-            slots.clearItem(this, "fake");
-            slots.fakeClicks = -1;
-            slots.addIcon(this, icons[6].toString(), obj[6], altObj[6], 5); // roach
-        }
-
-        if (showXtime > 0) {
-            if ((this.time.now - showXtime) > 500) {
-                showXtime = -1;
-                failed.setDepth(-1);
-            }
-        }
-
-        if (slots.inventoryView) {
-            slots.currentMode = "item"; // so slots object knows what is happening - needed?!
-            if (viewWall < 5) 
-                previousWall = viewWall;
-            keyMask.setVisible(false);
-            if (haveHalfKey && slots.inventoryViewAlt == "altobjPlateKey") {
-                slots.inventoryViewAlt = "altobjPlateEmpty";
-            }
-            if (snagged) {
-                currentWall = 5; flipIt = true;
-                snagged = false;
-                slots.inventoryViewAlt = "altobjPlateEmpty";
-            }
-            if (currentWall == 5 && flipIt) {
-                this.add.image(0, 0, slots.inventoryViewAlt).setOrigin(0, 0);
-                viewWall = 6; currentWall = 6;
-                // only make the piece available if seen...
-                if (foundHalfKey && !haveHalfKey) {
-                    keyMask.setVisible(true); keyMask.setDepth(200); keyMask.setInteractive({ cursor: 'pointer' });
-                }
-            } else {
-                this.add.image(0, 0, slots.inventoryViewObj).setOrigin(0, 0);
-                viewWall = 5; currentWall = 5;
-                console.log("IDLE IT? OR REPLAY");
-                if (slots.inventoryViewObj == "objRoach") {
-                    if (recorderMode == "record") {
-                        recorder.setMode("replay");
-                        console.log("NOW RELOAD")
-                        window.location.reload();
-                    } else {
-                        // TODO write proper exit function, called twice and did it here wrongly
-                        recorder.setMode("idle")
-                        recorderMode = "idle";
-                        viewportText.setDepth(-1);
-                        recordingEndedFadeClicks = 20;                        
-                    }
-                }
-            }
-            flipIt = false;
-
-            invBar.setDepth(100);
-            slots.inventoryView = false;
-
-            leftButton.setVisible(false);
-            rightButton.setVisible(false);
-            backButton.setVisible(true); backButton.setDepth(100); backButton.setInteractive({ cursor: 'pointer' });
-
-            /* Will fix combinations, after recorder...
-                        if (slots.otherViewObj.length > 0) {
-                            plusButton.setVisible(true); plusButton.setDepth(110); plusButton.setInteractive();
-                        } else {
-                            plusButton.setVisible(false);
-                        }
-            */
-
-            takeItemMask.setVisible(false);
-            viewTableMask.setVisible(false);
-            viewDoorMask.setVisible(false);
-
-            objectMask.setVisible(true);
-            objectMask.setDepth(100);
-            objectMask.setInteractive({ cursor: 'pointer' });
-            //objectMask.input.cursor = 'url(assets/input/cursors/pen.cur), pointer';
-
-        } else if ((viewWall != currentWall || updateWall)) {
-            if (egress) {
-                this.add.image(0, 0, walls[8]).setOrigin(0, 0);
-                leftButton.setVisible(false);
-                rightButton.setVisible(false);
-                currentWall = viewWall;
-                updateWall = false;
-                var sentence = "Nice job slugger!\nTry it again for the bonus?\nJust reload the page";
-                if (didBonus) {
-                    var bonus = this.add.image(360, 800, "winnerDonut")
-                    //bonus.setScale(3);
-                    sentence = "You did it :)\nThanks for testing!";
-                } else {
-                    failed.setVisible(true);
-                    failed.setDepth(400);
-                    failed.setX(360); failed.setY(800);
-                }
-
-                const style = 'margin: auto; background-color: black; color:white; width: 520px; height: 100px; font: 40px Arial';
-                this.add.dom(350, 1100, 'div', style, sentence);
-
-                invBar.setDepth(0);
-                slots.clearAll(this);
-                takeItemMask.setVisible(false);
-                viewTableMask.setVisible(false);
-                viewDoorMask.setVisible(false);
-
-                updateWall = false;
-                viewWall = currentWall;
-
-                recorder.setMode("idle")
-                recorderMode = "idle";
-                viewportText.setDepth(-1);
-
-                return;
-            }
-
-            slots.currentMode = "room";
-            if (viewWall > -1) { //?
-                if (doorUnlocked && viewWall == 0) {
-                    this.add.image(0, 0, walls[7]).setOrigin(0, 0);
-                } else {
-                    this.add.image(0, 0, walls[viewWall]).setOrigin(0, 0);
-                }
-            }
-
-            // need to build out hint system
-            if (viewWall == 9)
-                previousWall = 2;
-
-            slots.displaySlots(); // TODO: is this really required every time the wall changes?
-            invBar.setDepth(100); // TODO: surely no.
-            currentWall = viewWall;
-            updateWall = false;
-
-            if (viewWall == 0)
-                this.add.sprite(540, 650, tableView[tableState]).setOrigin(0, 0);
-            if (viewWall == 4)
-                this.add.sprite(176, 532, closeView[tableState]).setOrigin(0, 0);
-
-            if (viewWall > 3) { // viewing table not room wall, or inventory view
-                leftButton.setVisible(false);
-                rightButton.setVisible(false);
-                backButton.setVisible(true); backButton.setDepth(100); backButton.setInteractive({ cursor: 'pointer' });
-            } else {
-                leftButton.setVisible(true); leftButton.setDepth(100); leftButton.setInteractive({ cursor: 'pointer' });
-                rightButton.setVisible(true); rightButton.setDepth(100); rightButton.setInteractive({ cursor: 'pointer' });
-                backButton.setVisible(false);
-            }
-
-            plusButton.setVisible(false);
-
-            if (viewWall == 0) {
-                viewTableMask.setVisible(true); viewTableMask.setDepth(100); viewTableMask.setInteractive({ cursor: 'pointer' });
-                viewDoorMask.setVisible(true); viewDoorMask.setDepth(100); viewDoorMask.setInteractive({ cursor: 'pointer' });
-
-                //viewDoorMask.input.cursor = 'url(assets/input/cursors/pen.cur), pointer';
-                viewDoorMask.input.cursor = 'pointer';
-            } else {
-                viewTableMask.setVisible(false);
-                viewDoorMask.setVisible(false);
-            }
-
-            if (viewWall == 2) {
-                hintMask.setVisible(true); hintMask.setDepth(100); hintMask.setInteractive({ cursor: 'pointer' });
-            } else {
-                hintMask.setVisible(false);
-            }
-
-            if (viewWall == 4) { // the table
-                //takeItemMask.setVisible(true); takeItemMask.setDepth(100); takeItemMask.setInteractive();
-                //takeItemMask.input.cursor = 'url(assets/input/cursors/pen.cur), pointer';
-                takeItemMask.setVisible(true); takeItemMask.setDepth(100); takeItemMask.setInteractive({ cursor: 'pointer' });
-            } else {
-                takeItemMask.setVisible(false);
-            }
-            objectMask.setVisible(false);
-        }
+        invBar.setDepth(0);
+        slots.clearAll(this);
     }
+
+
+    // https://codereview.stackexchange.com/questions/171832/text-wrapping-function-in-javascript
+    formatTextWrap(text: string, maxLineLength: number) {
+        const words = text.replace(/[\r\n]+/g, ' ').split(' ');
+        let lineLength = 0;
+
+        // use functional reduce, instead of for loop 
+        return words.reduce((result: string, word: string) => {
+            if (lineLength + word.length >= maxLineLength) {
+                lineLength = word.length;
+                return result + `\n${word}`; // don't add spaces upfront
+            } else {
+                lineLength += word.length + (result ? 1 : 0);
+                return result ? result + ` ${word}` : `${word}`; // add space only when needed
+            }
+        }, '');
+    }
+
+
     preload() {
+        //this.load.plugin('rexcanvasinputplugin', 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexcanvasinputplugin.min.js', true);
+
         this.load.image('myViewport', 'assets/backgrounds/viewport.png');
         this.load.image('clckrLoc', 'assets/sprites/pointer.png');
         this.load.image('clckrClk', 'assets/sprites/pointerClicked.png');
@@ -688,7 +791,7 @@ class PlayGame extends Phaser.Scene {
         this.load.image('iconKeyWhole', 'assets/sprites/icon - keyWhole.png');
         this.load.image('iconDonutPlated', 'assets/sprites/icon - donutPlated.png');
         this.load.image('iconRoach', 'assets/sprites/icon - roach.png');
-        this.load.image('iconFake', 'assets/sprites/icon - selectedSecond.png');
+        this.load.image('iconFake', 'assets/sprites/icon - empty.png');
 
         icons[0] = "iconDonut";
         icons[1] = "iconPlate";
@@ -764,7 +867,8 @@ class PlayGame extends Phaser.Scene {
 
 
 let config = {
-    type: Phaser.AUTO,
+    type: Phaser.WEBGL,
+    //type: Phaser.CANVAS,
     backgroundColor: '#222222',
     scale: {
         mode: Phaser.Scale.FIT,

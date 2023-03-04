@@ -30,16 +30,16 @@ export default class Recorder {
         this.recording = "";
     }
 
-    setMode(mode:string) {
+    setMode(mode: string) {
         console.log("MODE: " + mode);
         this.recorderMode = mode;
         setCookie("escapeRecorderMode", mode, 7); // bake for a week
     };
-    
+
     getMode() {
         let mode = getCookie("escapeRecorderMode");
-        if (mode == undefined || mode.length==0) {
-            mode="init";
+        if (mode == undefined || mode.length == 0) {
+            mode = "init";
         }
         this.recorderMode = mode;
         return mode;
@@ -49,7 +49,7 @@ export default class Recorder {
         let size = -1;
         if (this.recordingSize)
             size = this.recordingSize
-        return size; 
+        return size;
     }
 
     // This is terrible, but I don't know how to fix it. Need to update the pointer on mobile,
@@ -149,8 +149,36 @@ export default class Recorder {
             console.log("ERROR bad recording!");
             recIn = "ERROR";
         }
-        return recIn;        
+        return recIn;
     }
+
+    getFormattedRecording(maxLineLength: number) {
+        let recIn = this.getRecording();
+        let recOut = "";
+
+        let re = /mousemove,/g; recOut = recIn.replace(re, "#");
+        re = /mouseclick,/g; recOut = recOut.replace(re, "!");
+        re = /object=/g; recOut = recOut.replace(re, "=");
+        re = /icon=/g; recOut = recOut.replace(re, "\-");
+
+        let inStr = recOut;
+        let out: string = "";
+
+        while (inStr.length > 0) {
+            if (inStr.length == recOut.length) {
+                out = out + inStr.substring(0, maxLineLength - 9) + "\n";
+                inStr = inStr.substring(maxLineLength - 15,);
+            } else {
+                out = out + inStr.substring(0, maxLineLength) + "\n";
+                inStr = inStr.substring(maxLineLength,);
+            }
+        }
+
+        recOut = "\n\n\n\n\n\n____________\n" + this.checksum(recIn) + "?" + out + "?v1\n___________";
+
+        return recOut;
+    }
+
     dumpRecording() {
         const rec = this.recording.split(":");
         let recOut = "";
@@ -248,28 +276,28 @@ export default class Recorder {
         //console.log("str  " + stringified.length);
 
 
-/*
-        //let recOutString = JSON.stringify(recOut);
-        //console.log(recOutString);
-        //console.log("json string length " + recOutString.length)
-        let recInCheck = recOut.split('?')[0];
-        let recIn = recOut.split('?')[1];
-        let recInVersion = recOut.split('?')[2];
-        re = /#/g; recIn = recIn.replace(re, "mousemove,");
-        re = /!/g; recIn = recIn.replace(re, "mouseclick,");
-        re = /=/g; recIn = recIn.replace(re, "object=");
-        re = /\-/g; recIn = recIn.replace(re, "icon=");
-        //console.log(recording);        
-        //console.log(recIn);
-        //console.log(this.checksum(recording))
-        //console.log(this.checksum(recIn));
-        //console.log(recInCheck);
-        if (recInCheck == this.checksum(recIn)) {
-            console.log("Good recording " + recInVersion);
-        } else {
-            console.log("ERROR");
-        }
-*/        
+        /*
+                //let recOutString = JSON.stringify(recOut);
+                //console.log(recOutString);
+                //console.log("json string length " + recOutString.length)
+                let recInCheck = recOut.split('?')[0];
+                let recIn = recOut.split('?')[1];
+                let recInVersion = recOut.split('?')[2];
+                re = /#/g; recIn = recIn.replace(re, "mousemove,");
+                re = /!/g; recIn = recIn.replace(re, "mouseclick,");
+                re = /=/g; recIn = recIn.replace(re, "object=");
+                re = /\-/g; recIn = recIn.replace(re, "icon=");
+                //console.log(recording);        
+                //console.log(recIn);
+                //console.log(this.checksum(recording))
+                //console.log(this.checksum(recIn));
+                //console.log(recInCheck);
+                if (recInCheck == this.checksum(recIn)) {
+                    console.log("Good recording " + recInVersion);
+                } else {
+                    console.log("ERROR");
+                }
+        */
     }
 
     saveCookies(data: string) {

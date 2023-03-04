@@ -20,5 +20,7 @@ npm install --save-dev webpack-dev-server
 
 npm install --save zipson // not using this yet, perhaps never
 
+npm i phaser3-rex-plugins // IS NEXT
+
 npm run development
 npm run distribution
