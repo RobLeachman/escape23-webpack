@@ -17,7 +17,7 @@ import Slots from "./objects/slots"
 import Recorder from "./objects/recorder"
 import { setCookie, getCookie, eraseCookie } from "./utils/cookie";
 
-var viewWall = 4;
+var viewWall = 2;
 
 const walls = new Array();
 const icons = new Array();
@@ -81,6 +81,7 @@ class PlayGame extends Phaser.Scene {
     }
 
     create() {
+
         let scene = this;
         this.input.on('gameobjectdown', function (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) {
             recorder.recordObjectDown((gameObject as Phaser.GameObjects.Sprite).texture.key, scene);
@@ -127,6 +128,7 @@ class PlayGame extends Phaser.Scene {
         failed = this.add.sprite(80, 950, 'fail');
 
         rightButton.on('pointerdown', () => {
+            console.log("RIGHT")
             viewWall++;
             if (viewWall > 3)
                 viewWall = 0;
@@ -152,8 +154,7 @@ class PlayGame extends Phaser.Scene {
 
 
         backButton.on('pointerdown', () => {
-            //slots.clickIcon("iconDonut");   // here's how we click an icon!
-
+            console.log("back to " + previousWall)
             if (viewWall == 4)
                 viewWall = 0;
             else
@@ -212,6 +213,7 @@ class PlayGame extends Phaser.Scene {
         hintMask = this.add.sprite(110, 446, 'hintMask').setOrigin(0, 0);
         hintMask.on('pointerdown', () => {
             console.log("HINT");
+            viewWall = 9;
         });
 
         // Add item to inventory list when picked up. In this test it's easy, just 3 stacked items.
@@ -229,13 +231,14 @@ class PlayGame extends Phaser.Scene {
 
         viewTableMask = this.add.sprite(440, 615, 'tableMask').setOrigin(0, 0);
         viewTableMask.on('pointerdown', () => {
-            console.log("view table!")
+            //console.log("view table!")
             if (viewWall == 0)
                 viewWall = 4;
 
         });
 
         viewDoorMask = this.add.sprite(274, 398, 'doorMask').setOrigin(0, 0);
+
         viewDoorMask.on('pointerdown', () => {
             if (doorUnlocked) {
                 egress = true; // TODO doorUnlocked needs multiple states... then drop this flag
@@ -320,6 +323,9 @@ class PlayGame extends Phaser.Scene {
                     'color': 'white'
                 };
         */
+        //this.input.setDefaultCursor('url(assets/input/cursors/blue.cur), auto');
+        //this.input.setDefaultCursor(
+        // "url(" + require("./assets/input/cursors/blue.cur") + "), auto");       
     }
 
     handleKey(event: KeyboardEvent) {
@@ -421,6 +427,10 @@ class PlayGame extends Phaser.Scene {
                                 viewDoorMask.emit('pointerdown');
                                 break;
                             }
+                            case "hintMask": {
+                                hintMask.emit('pointerdown');
+                                break;
+                            }
 
 
                             default: {
@@ -464,7 +474,7 @@ class PlayGame extends Phaser.Scene {
 
         if (slots.inventoryView) {
             slots.currentMode = "item"; // so slots object knows what is happening - needed?!
-            if (viewWall < 5)
+            if (viewWall < 5) 
                 previousWall = viewWall;
             keyMask.setVisible(false);
             if (haveHalfKey && slots.inventoryViewAlt == "altobjPlateKey") {
@@ -480,7 +490,7 @@ class PlayGame extends Phaser.Scene {
                 viewWall = 6; currentWall = 6;
                 // only make the piece available if seen...
                 if (foundHalfKey && !haveHalfKey) {
-                    keyMask.setVisible(true); keyMask.setDepth(200); keyMask.setInteractive();
+                    keyMask.setVisible(true); keyMask.setDepth(200); keyMask.setInteractive({ cursor: 'pointer' });
                 }
             } else {
                 this.add.image(0, 0, slots.inventoryViewObj).setOrigin(0, 0);
@@ -505,7 +515,7 @@ class PlayGame extends Phaser.Scene {
 
             leftButton.setVisible(false);
             rightButton.setVisible(false);
-            backButton.setVisible(true); backButton.setDepth(100); backButton.setInteractive();
+            backButton.setVisible(true); backButton.setDepth(100); backButton.setInteractive({ cursor: 'pointer' });
 
             /* Will fix combinations, after recorder...
                         if (slots.otherViewObj.length > 0) {
@@ -521,7 +531,8 @@ class PlayGame extends Phaser.Scene {
 
             objectMask.setVisible(true);
             objectMask.setDepth(100);
-            objectMask.setInteractive();
+            objectMask.setInteractive({ cursor: 'pointer' });
+            //objectMask.input.cursor = 'url(assets/input/cursors/pen.cur), pointer';
 
         } else if ((viewWall != currentWall || updateWall)) {
             if (egress) {
@@ -565,6 +576,10 @@ class PlayGame extends Phaser.Scene {
                 }
             }
 
+            // need to build out hint system
+            if (viewWall == 9)
+                previousWall = 2;
+
             slots.displaySlots(); // TODO: is this really required every time the wall changes?
             invBar.setDepth(100); // TODO: surely no.
             currentWall = viewWall;
@@ -578,31 +593,36 @@ class PlayGame extends Phaser.Scene {
             if (viewWall > 3) { // viewing table not room wall, or inventory view
                 leftButton.setVisible(false);
                 rightButton.setVisible(false);
-                backButton.setVisible(true); backButton.setDepth(100); backButton.setInteractive();
+                backButton.setVisible(true); backButton.setDepth(100); backButton.setInteractive({ cursor: 'pointer' });
             } else {
-                leftButton.setVisible(true); leftButton.setDepth(100); leftButton.setInteractive();
-                rightButton.setVisible(true); rightButton.setDepth(100); rightButton.setInteractive();
+                leftButton.setVisible(true); leftButton.setDepth(100); leftButton.setInteractive({ cursor: 'pointer' });
+                rightButton.setVisible(true); rightButton.setDepth(100); rightButton.setInteractive({ cursor: 'pointer' });
                 backButton.setVisible(false);
             }
 
             plusButton.setVisible(false);
 
             if (viewWall == 0) {
-                viewTableMask.setVisible(true); viewTableMask.setDepth(100); viewTableMask.setInteractive();
-                viewDoorMask.setVisible(true); viewDoorMask.setDepth(100); viewDoorMask.setInteractive();
+                viewTableMask.setVisible(true); viewTableMask.setDepth(100); viewTableMask.setInteractive({ cursor: 'pointer' });
+                viewDoorMask.setVisible(true); viewDoorMask.setDepth(100); viewDoorMask.setInteractive({ cursor: 'pointer' });
+
+                //viewDoorMask.input.cursor = 'url(assets/input/cursors/pen.cur), pointer';
+                viewDoorMask.input.cursor = 'pointer';
             } else {
                 viewTableMask.setVisible(false);
                 viewDoorMask.setVisible(false);
             }
 
             if (viewWall == 2) {
-                hintMask.setVisible(true); hintMask.setDepth(100); hintMask.setInteractive();
+                hintMask.setVisible(true); hintMask.setDepth(100); hintMask.setInteractive({ cursor: 'pointer' });
             } else {
                 hintMask.setVisible(false);
             }
 
-            if (viewWall == 4) {
-                takeItemMask.setVisible(true); takeItemMask.setDepth(100); takeItemMask.setInteractive();
+            if (viewWall == 4) { // the table
+                //takeItemMask.setVisible(true); takeItemMask.setDepth(100); takeItemMask.setInteractive();
+                //takeItemMask.input.cursor = 'url(assets/input/cursors/pen.cur), pointer';
+                takeItemMask.setVisible(true); takeItemMask.setDepth(100); takeItemMask.setInteractive({ cursor: 'pointer' });
             } else {
                 takeItemMask.setVisible(false);
             }
@@ -620,6 +640,7 @@ class PlayGame extends Phaser.Scene {
         this.load.image('wall4', 'assets/backgrounds/invroom - room - east.png');
         this.load.image('wallUnlocked', 'assets/backgrounds/invroom - room - unlocked.png');
         this.load.image('wallWinner', 'assets/backgrounds/invroom - room - winner.png');
+        this.load.image('wallHint', 'assets/backgrounds/invroom - help1 - background.png');
 
         walls[0] = "wall1";
         walls[1] = "wall2";
@@ -630,6 +651,7 @@ class PlayGame extends Phaser.Scene {
         walls[6] = "(item view alt)";
         walls[7] = "wallUnlocked";
         walls[8] = "wallWinner";
+        walls[9] = "wallHint";
 
         this.load.image('table', 'assets/backgrounds/invroom - table - empty.png');
 
@@ -723,8 +745,6 @@ class PlayGame extends Phaser.Scene {
         this.load.image('testplateShown', 'assets/sprites/closePlate.png');
         this.load.image('testplateIcon', 'assets/sprites/icon - plate.png');
     }
-
-
 }
 
 
