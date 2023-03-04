@@ -17,6 +17,7 @@ export default class Recorder {
     clickers: Phaser.GameObjects.Sprite[] = [];
 
     recording: string;
+    recordingSize: number;
     recorderMode: string; // try everything
 
     constructor(pointer: Phaser.Input.Pointer,
@@ -42,6 +43,13 @@ export default class Recorder {
         }
         this.recorderMode = mode;
         return mode;
+    }
+
+    getSize() {
+        let size = -1;
+        if (this.recordingSize)
+            size = this.recordingSize
+        return size; 
     }
 
     // This is terrible, but I don't know how to fix it. Need to update the pointer on mobile,
@@ -265,6 +273,7 @@ export default class Recorder {
     }
 
     saveCookies(data: string) {
+        this.recordingSize = data.length;
         const cookieName = "test";
         // must split if too big
         let chunked = this.chunkString(data, 4080); // max 4096

@@ -13,15 +13,15 @@ class InvItem {
     objView: string; // name of image to display when examined
     altObjView: string; // alternate view image
 
-    constructor (scene: Phaser.Scene, 
-        index: number,  
+    constructor(scene: Phaser.Scene,
+        index: number,
         iconSpriteImage: string,
         allSlots: Slots,
-        recorder: Recorder) { 
+        recorder: Recorder) {
 
         this.scene = scene;
         this.iconSprite = this.scene.add.sprite(95 + index * 90, 1075, iconSpriteImage).setOrigin(0, 0);
-        this.iconSprite.on('pointerdown', this.clickIt, this);        
+        this.iconSprite.on('pointerdown', this.clickIt, this);
 
         this.index = index;
         this.selected = false;
@@ -31,18 +31,23 @@ class InvItem {
     }
 
     clickIt() {
-        //console.log("ICON CLICK!! " + this.name);
         //console.log(this);
         //console.log(this.name);
         //console.log((this.iconSprite as Phaser.GameObjects.Sprite).texture.key)
-        
         //this.recorder.recordIconClick(this.name, this.scene);
+
+        console.log("ICON CLICK!! " + this.name);
         this.recorder.recordIconClick((this.iconSprite as Phaser.GameObjects.Sprite).texture.key, this.scene);
+        if (this.name == "fake") {
+            console.log("FAKE")
+            this.allSlots.fakeClicks++;
+            return;
+        }        
 
         let prevItem = -1;
         this.allSlots.slotArray.forEach((icon, idx) => {
             if (icon.selected)
-               prevItem = idx;            
+                prevItem = idx;
             icon.selected = false;
             icon.iconSprite.setDepth(1); // do we need this here? probably not          
         });
@@ -90,11 +95,12 @@ export default class Slots {
     index: number;
     currentMode: string;
     recorder: Recorder;
+    fakeClicks: number = 0;
 
     // Construct with the active scene, the name of the empty sprite (for testing), and the select boxes 
-    constructor(scene:Phaser.Scene, 
-        slotIconSprite: string, 
-        selectSprite: string, 
+    constructor(scene: Phaser.Scene,
+        slotIconSprite: string,
+        selectSprite: string,
         selectSecond: string,
         recorder: Recorder) {
 
@@ -103,16 +109,16 @@ export default class Slots {
         this.selectedSecondIcon = scene.add.sprite(1000, 1075, selectSecond).setOrigin(0, 0);
         this.recorder = recorder;
 
-/* hacked this off to the side while converting to typescript... we don't need these?       
-        this.inventoryView = false;
-        this.inventoryViewObj = "";
-        this.otherViewObj = "";        
-*/        
+        /* hacked this off to the side while converting to typescript... we don't need these?       
+                this.inventoryView = false;
+                this.inventoryViewObj = "";
+                this.otherViewObj = "";        
+        */
         for (var i = 0; i < 6; i++) {
             let slotItem = new InvItem(scene, i, slotIconSprite, this, this.recorder); // empty sprite image, or select
             this.slotArray.push(slotItem);
 
-            
+
         }
         this.currentMode = "room"; // TODO is this even needed? 
     }
@@ -120,10 +126,10 @@ export default class Slots {
     displaySlots() {
         this.slotArray.forEach((icon, idx) => {
             icon.iconSprite.setDepth(1);
-        });        
-        
+        });
+
     }
-//recorder will use this:
+    //recorder will use this:
     recordedClickIt(iconName: string) {
         //console.log("DO ICON CLICK " + iconName);
         //console.log(this);
@@ -137,8 +143,8 @@ export default class Slots {
         });
         this.slotArray[clickIndex].iconSprite.emit('pointerdown'); // selects the icon at position
     }
-    
-    addIcon(scene:Phaser.Scene, iconSpriteName: string, objectView: string, altObjectView: string, spot?:number) {
+
+    addIcon(scene: Phaser.Scene, iconSpriteName: string, objectView: string, altObjectView: string, spot?: number) {
         let i = -1;
         this.slotArray.forEach((icon, idx) => {
             // why check empty? clear just destroys the sprite and i couldn't replace it properly TODO FIX
@@ -165,38 +171,38 @@ export default class Slots {
         this.slotArray[i].altObjView = altObjectView;
     }
 
-    
+
     clearSelect() {
-        this.selectedIcon.setX(1000);        
+        this.selectedIcon.setX(1000);
     }
 
-/* rework combine after recorder
-    combineFail(scene:Phaser.Scene) {
-        this.selectedSecondIcon.setX(1000);
-    }
-
-    clearSecondSelect() {
-        this.selectedSecondIcon.setX(1000);        
-    }
-    
-    combiningItems(scene:Phaser.Scene, obj1: string, obj2: string) {
-        this.selectedSecondIcon.setX(1000);
-        this.clearItem(scene, obj1);
-        this.clearItem(scene, obj2);
-    }
-
-    selectItem(scene:Phaser.Scene, objName: string, altName: string) {
-        // Find the selected item
-        var k=-1;
-        for (k = 0; k < 6; k++) {
-            if (this.slotArray[k].slotSprite.name == objName) {
-                break;
-            }
+    /* rework combine after recorder
+        combineFail(scene:Phaser.Scene) {
+            this.selectedSecondIcon.setX(1000);
         }
-        this.selectedIcon.setX(95 + k * 90);
-        this.slotArray[k].selected = true;
-    }
-*/    
+    
+        clearSecondSelect() {
+            this.selectedSecondIcon.setX(1000);        
+        }
+        
+        combiningItems(scene:Phaser.Scene, obj1: string, obj2: string) {
+            this.selectedSecondIcon.setX(1000);
+            this.clearItem(scene, obj1);
+            this.clearItem(scene, obj2);
+        }
+    
+        selectItem(scene:Phaser.Scene, objName: string, altName: string) {
+            // Find the selected item
+            var k=-1;
+            for (k = 0; k < 6; k++) {
+                if (this.slotArray[k].slotSprite.name == objName) {
+                    break;
+                }
+            }
+            this.selectedIcon.setX(95 + k * 90);
+            this.slotArray[k].selected = true;
+        }
+    */
 
     getSelected() {
         let selectedThing = "";
@@ -204,17 +210,17 @@ export default class Slots {
             if (icon.selected) {
                 selectedThing = icon.name;
             }
-        });   
+        });
         return selectedThing;
     }
 
-    clearItem(scene:Phaser.Scene, objName: string) {
+    clearItem(scene: Phaser.Scene, objName: string) {
         var clearSlot = -1;
         this.slotArray.forEach((icon, idx) => {
             if (icon.name == objName) {
                 clearSlot = idx;
             }
-        });         
+        });
 
         if (clearSlot > -1) {
             this.slotArray[clearSlot].iconSprite.destroy();
@@ -225,11 +231,11 @@ export default class Slots {
         }
     }
 
-    clearAll(scene:Phaser.Scene) {
+    clearAll(scene: Phaser.Scene) {
         this.slotArray.forEach((icon, idx) => {
             icon.iconSprite.destroy();
-        });          
+        });
         this.selectedIcon.setX(1000);
         this.selectedSecondIcon.setX(1000);
-    }    
+    }
 } 

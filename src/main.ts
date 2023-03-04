@@ -17,7 +17,7 @@ import Slots from "./objects/slots"
 import Recorder from "./objects/recorder"
 import { setCookie, getCookie, eraseCookie } from "./utils/cookie";
 
-var viewWall = 2;
+var viewWall = 4;
 
 const walls = new Array();
 const icons = new Array();
@@ -154,7 +154,7 @@ class PlayGame extends Phaser.Scene {
 
 
         backButton.on('pointerdown', () => {
-            console.log("back to " + previousWall)
+            //console.log("back to " + previousWall)
             if (viewWall == 4)
                 viewWall = 0;
             else
@@ -253,7 +253,7 @@ class PlayGame extends Phaser.Scene {
             }
         });
 
-        objectMask = this.add.sprite(10, 250, 'objectMask').setOrigin(0, 0);
+        objectMask = this.add.sprite(87, 423, 'objectMask').setOrigin(0, 0);
         // Flip object over. Need to adjust for key presence if it's the plate. Awkward!
         objectMask.on('pointerdown', () => {
             flipIt = true;
@@ -286,7 +286,8 @@ class PlayGame extends Phaser.Scene {
             slots.addIcon(this, icons[3].toString(), obj[3], altObj[3]); // TODO: get name from sprite!!
         });
 
-        slots.addIcon(this, icons[6].toString(), obj[6], altObj[6], 5); // TODO: get name from sprite?!
+        slots.addIcon(this, icons[7].toString(), "fake", "fake", 4); // TODO: get name from sprite?!
+        //slots.addIcon(this, icons[6].toString(), obj[6], altObj[6], 5); // TODO: get name from sprite?!
 
         // Debug recorder debugger
         viewportText = this.add.text(10, 10, '');
@@ -368,7 +369,7 @@ class PlayGame extends Phaser.Scene {
                 'rightButtonDown: ' + pointer.rightButtonDown(),
                 'isDown: ' + pointer.isDown,
                 '',
-                debugAction + '  time: ' + Math.floor(this.time.now)
+                debugAction + '  time: ' + Math.floor(this.time.now) + '   length: ' + recorder.getSize()
             ]);
         }
         if (recorderMode == "record") {
@@ -464,6 +465,12 @@ class PlayGame extends Phaser.Scene {
             recorder.fadeClick(this);
             viewportPointer.setX(1000);
         }
+        if (slots.fakeClicks == 3) {
+            console.log("BRING THE ROACH");
+            slots.clearItem(this, "fake");
+            slots.fakeClicks = -1;
+            slots.addIcon(this, icons[6].toString(), obj[6], altObj[6], 5); // roach
+        }
 
         if (showXtime > 0) {
             if ((this.time.now - showXtime) > 500) {
@@ -502,9 +509,11 @@ class PlayGame extends Phaser.Scene {
                         console.log("NOW RELOAD")
                         window.location.reload();
                     } else {
+                        // TODO write proper exit function, called twice and did it here wrongly
                         recorder.setMode("idle")
                         recorderMode = "idle";
                         viewportText.setDepth(-1);
+                        recordingEndedFadeClicks = 20;                        
                     }
                 }
             }
@@ -555,7 +564,6 @@ class PlayGame extends Phaser.Scene {
                 const style = 'margin: auto; background-color: black; color:white; width: 520px; height: 100px; font: 40px Arial';
                 this.add.dom(350, 1100, 'div', style, sentence);
 
-
                 invBar.setDepth(0);
                 slots.clearAll(this);
                 takeItemMask.setVisible(false);
@@ -564,6 +572,11 @@ class PlayGame extends Phaser.Scene {
 
                 updateWall = false;
                 viewWall = currentWall;
+
+                recorder.setMode("idle")
+                recorderMode = "idle";
+                viewportText.setDepth(-1);
+
                 return;
             }
 
@@ -675,6 +688,7 @@ class PlayGame extends Phaser.Scene {
         this.load.image('iconKeyWhole', 'assets/sprites/icon - keyWhole.png');
         this.load.image('iconDonutPlated', 'assets/sprites/icon - donutPlated.png');
         this.load.image('iconRoach', 'assets/sprites/icon - roach.png');
+        this.load.image('iconFake', 'assets/sprites/icon - selectedSecond.png');
 
         icons[0] = "iconDonut";
         icons[1] = "iconPlate";
@@ -683,6 +697,7 @@ class PlayGame extends Phaser.Scene {
         icons[4] = "iconKeyWhole";
         icons[5] = "iconDonutPlated";
         icons[6] = "iconRoach";
+        icons[7] = "iconFake";
 
         this.load.image('objDonut', 'assets/backgrounds/invroom - obj - donut.png');
         this.load.image('objPlate', 'assets/backgrounds/invroom - obj - plate.png');
@@ -737,7 +752,7 @@ class PlayGame extends Phaser.Scene {
 
         this.load.image('tableMask', 'assets/sprites/tableMask.png');
         this.load.image('takeMask', 'assets/sprites/takeMask.png');
-        this.load.image('objectMask', 'assets/sprites/object mask.png');
+        this.load.image('objectMask', 'assets/sprites/object maskB00.png');
         this.load.image('keyMask', 'assets/sprites/keyMask.png');
         this.load.image('doorMask', 'assets/sprites/doorMask.png');
         this.load.image('hintMask', 'assets/sprites/hintMask.png');
