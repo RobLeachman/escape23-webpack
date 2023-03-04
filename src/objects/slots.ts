@@ -31,7 +31,7 @@ class InvItem {
     }
 
     clickIt() {
-        console.log("ICON CLICK!! " + this.name);
+        //console.log("ICON CLICK!! " + this.name);
         //console.log(this);
         //console.log(this.name);
         //console.log((this.iconSprite as Phaser.GameObjects.Sprite).texture.key)
@@ -39,7 +39,6 @@ class InvItem {
         //this.recorder.recordIconClick(this.name, this.scene);
         this.recorder.recordIconClick((this.iconSprite as Phaser.GameObjects.Sprite).texture.key, this.scene);
 
-        console.log("GOOD NAME " + (this.iconSprite as Phaser.GameObjects.Sprite).texture.key)
         let prevItem = -1;
         this.allSlots.slotArray.forEach((icon, idx) => {
             if (icon.selected)
@@ -47,7 +46,7 @@ class InvItem {
             icon.selected = false;
             icon.iconSprite.setDepth(1); // do we need this here? probably not          
         });
-        console.log("click index " + this.index + " previous " + prevItem);
+        //console.log("click index " + this.index + " previous " + prevItem);
         this.selected = true;
         // mark this selected icon
         this.allSlots.selectedIcon.x = 95 + this.index * 90;
@@ -126,20 +125,20 @@ export default class Slots {
     }
 //recorder will use this:
     recordedClickIt(iconName: string) {
-        console.log("DO ICON CLICK " + iconName);
+        //console.log("DO ICON CLICK " + iconName);
         //console.log(this);
         //console.log(this.slotArray[1].iconSprite);
         let clickIndex = -1;
         this.slotArray.forEach((icon, idx) => {
-            console.log("  iconsArray " + icon);
-            console.log(icon);
+            //console.log("  iconsArray " + icon);
+            //console.log(icon);
             if ((this.slotArray[idx].iconSprite as Phaser.GameObjects.Sprite).texture.key == iconName)
                 clickIndex = idx;
         });
         this.slotArray[clickIndex].iconSprite.emit('pointerdown'); // selects the icon at position
     }
     
-    addIcon(scene:Phaser.Scene, iconSpriteName: string, objectView: string, altObjectView: string) {
+    addIcon(scene:Phaser.Scene, iconSpriteName: string, objectView: string, altObjectView: string, spot?:number) {
         let i = -1;
         this.slotArray.forEach((icon, idx) => {
             // why check empty? clear just destroys the sprite and i couldn't replace it properly TODO FIX
@@ -148,6 +147,9 @@ export default class Slots {
                 //break;
             }
         });
+        if (spot) {
+            i = spot;
+        }
 
         this.slotArray[i].iconSprite.destroy();
         this.slotArray[i].iconSprite =

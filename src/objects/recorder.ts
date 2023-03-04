@@ -40,9 +40,7 @@ export default class Recorder {
         if (mode == undefined || mode.length==0) {
             mode="init";
         }
-
         this.recorderMode = mode;
-        console.log("got mode " + mode);
         return mode;
     }
 
@@ -63,7 +61,6 @@ export default class Recorder {
             this.oldPointerDown = this.pointer.isDown;
             if (this.oldPointerDown) {
                 pointerClicked = true;
-                console.log("CLICK AT " + this.pointer.x + ',' + this.pointer.y);
             }
         }
         // RIGHT CLICK CHECK
@@ -107,12 +104,12 @@ export default class Recorder {
     }
     // everything would be so much easier if we had a scene here!! NO SHIT I GOT IT
     recordObjectDown(object: string, scene: Phaser.Scene) {
-        console.log(`RECORDER OBJECT ${object}`);
+        //console.log(`RECORDER OBJECT ${object}`);
         //console.log(scene.time.now);
         this.recording = this.recording.concat(`object=${object},${Math.floor(this.pointer.x)},${Math.floor(this.pointer.y)},${scene.time.now}:`);
     }
     recordIconClick(object: string, scene: Phaser.Scene) {
-        console.log(`RECORDER ICON CLICK ${object}`);
+        //console.log(`RECORDER ICON CLICK ${object}`);
         this.recording = this.recording.concat(`icon=${object},${Math.floor(this.pointer.x)},${Math.floor(this.pointer.y)},${scene.time.now}:`);
         //console.log(this.recording);
 
@@ -312,7 +309,7 @@ export default class Recorder {
             newSprite.setScale(5);
         }
         this.clickers.push(newSprite);
-        console.log("CLICKERCOUNT " + this.clickers.length)
+        //console.log("CLICKERCOUNT " + this.clickers.length)
         this.prevClickX = x; this.prevClickY = y;
         newSprite.setDepth(3000);
     }
