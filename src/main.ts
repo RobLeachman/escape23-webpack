@@ -17,7 +17,7 @@ import Slots from "./objects/slots"
 import Recorder from "./objects/recorder"
 import { setCookie, getCookie, eraseCookie } from "./utils/cookie";
 
-var currentWall = -1;
+var viewWall = 4;
 
 const walls = new Array();
 const icons = new Array();
@@ -26,7 +26,7 @@ const altObj = new Array();
 const tableView = new Array();
 const closeView = new Array();
 const i = new Array();
-var viewWall = 4;
+var currentWall = -1;
 var previousWall = -1;
 
 var invBar: Phaser.GameObjects.Sprite;
@@ -72,119 +72,12 @@ let recording = "";
 let actions: [string, number, number, number][] = [["BOJ", 0, 0, 0]];
 let nextActionTime = 0;
 let recordingEndedFadeClicks = 0;
+let debugging = false;
 
 class PlayGame extends Phaser.Scene {
 
     constructor() {
         super("PlayGame");
-    }
-    preload() {
-        this.load.image('myViewport', 'assets/backgrounds/viewport.png');
-        this.load.image('clckrLoc', 'assets/sprites/pointer.png');
-        this.load.image('clckrClk', 'assets/sprites/pointerClicked.png');
-
-        this.load.image('wall1', 'assets/backgrounds/invroom - room - empty.png');
-        this.load.image('wall2', 'assets/backgrounds/invroom - room - west.png');
-        this.load.image('wall3', 'assets/backgrounds/invroom - room - south.png');
-        this.load.image('wall4', 'assets/backgrounds/invroom - room - east.png');
-        this.load.image('wallUnlocked', 'assets/backgrounds/invroom - room - unlocked.png');
-        this.load.image('wallWinner', 'assets/backgrounds/invroom - room - winner.png');
-
-        walls[0] = "wall1";
-        walls[1] = "wall2";
-        walls[2] = "wall3";
-        walls[3] = "wall4";
-        walls[4] = "table";
-        walls[5] = "(item view)";
-        walls[6] = "(item view alt)";
-        walls[7] = "wallUnlocked";
-        walls[8] = "wallWinner";
-
-        this.load.image('table', 'assets/backgrounds/invroom - table - empty.png');
-
-        this.load.image('right', 'assets/sprites/arrowRight.png');
-        this.load.image('left', 'assets/sprites/arrowLeft.png');
-        this.load.image('down', 'assets/sprites/arrowDown.png');
-        this.load.image('plus', 'assets/sprites/plus.png');
-        this.load.image('fail', 'assets/sprites/fail.png');
-        this.load.image('winnerDonut', 'assets/sprites/winner donutPlated.png');
-
-        this.load.image('inventory', 'assets/sprites/inventory cells.png');
-
-        this.load.image('iconEmpty', 'assets/sprites/icon - empty.png');
-        this.load.image('iconSelected', 'assets/sprites/icon - selected.png');
-        this.load.image('iconSelectedSecond', 'assets/sprites/icon - selectedSecond.png');
-
-        this.load.image('iconDonut', 'assets/sprites/icon - donut.png');
-        this.load.image('iconPlate', 'assets/sprites/icon - plate.png');
-        this.load.image('iconKeyA', 'assets/sprites/icon - keyA.png');
-        this.load.image('iconKeyB', 'assets/sprites/icon - keyB.png');
-        this.load.image('iconKeyWhole', 'assets/sprites/icon - keyWhole.png');
-        this.load.image('iconDonutPlated', 'assets/sprites/icon - donutPlated.png');
-
-        icons[0] = "iconDonut";
-        icons[1] = "iconPlate";
-        icons[2] = "iconKeyB";
-        icons[3] = "iconKeyA";
-        icons[4] = "iconKeyWhole";
-        icons[5] = "iconDonutPlated";
-
-        this.load.image('objDonut', 'assets/backgrounds/invroom - obj - donut.png');
-        this.load.image('objPlate', 'assets/backgrounds/invroom - obj - plate.png');
-        this.load.image('objKeyA', 'assets/backgrounds/invroom - obj - keyA.png');
-        this.load.image('objKeyB', 'assets/backgrounds/invroom - obj - keyB.png');
-        this.load.image('objKeyWhole', 'assets/backgrounds/invroom - obj - keyWhole.png');
-        this.load.image('objDonutPlated', 'assets/backgrounds/invroom - obj - donutPlated.png');
-
-        obj[0] = "objDonut";
-        obj[1] = "objPlate";
-        obj[2] = "objKeyB";
-        obj[3] = "objKeyA";
-        obj[4] = "objKeyWhole";
-        obj[5] = "objDonutPlated";
-
-        this.load.image('altobjDonut', 'assets/backgrounds/invroom - altobj - donut.png');
-        this.load.image('altobjPlateKey', 'assets/backgrounds/invroom - altobj - plate key.png');
-        this.load.image('altobjKeyA', 'assets/backgrounds/invroom - altobj - keyA.png');
-        this.load.image('altobjKeyB', 'assets/backgrounds/invroom - altobj - keyB.png');
-        this.load.image('altobjKeyWhole', 'assets/backgrounds/invroom - altobj - keyWhole.png');
-        this.load.image('altobjDonutPlated', 'assets/backgrounds/invroom - altobj - donutPlated.png');
-
-        this.load.image('altobjPlateEmpty', 'assets/backgrounds/invroom - altobj - plate empty.png');
-        altObj[0] = "altobjDonut";
-        altObj[1] = "altobjPlateKey";
-        altObj[2] = "altobjKeyB";
-        altObj[3] = "altobjKeyA";
-        altObj[4] = "altobjKeyWhole";
-        altObj[5] = "altobjDonutPlated";
-
-        this.load.image('tableDonut', 'assets/sprites/tableDonut.png');
-        this.load.image('tablePlate', 'assets/sprites/tablePlate.png');
-        this.load.image('tableKey', 'assets/sprites/tableKey.png');
-        this.load.image('tableEmpty', 'assets/sprites/tableEmpty.png');
-        tableView[0] = "tableDonut";
-        tableView[1] = "tablePlate";
-        tableView[2] = "tableKey";
-        tableView[3] = "tableEmpty";
-
-        this.load.image('closeDonut', 'assets/sprites/closeDonut.png');
-        this.load.image('closePlate', 'assets/sprites/closePlate.png');
-        this.load.image('closeKey', 'assets/sprites/closeKey.png');
-        this.load.image('closeEmpty', 'assets/sprites/closeEmpty.png');
-        closeView[0] = "closeDonut"
-        closeView[1] = "closePlate"
-        closeView[2] = "closeKey"
-        closeView[3] = "closeEmpty"
-
-        this.load.image('tableMask', 'assets/sprites/tableMask.png');
-        this.load.image('takeMask', 'assets/sprites/takeMask.png');
-        this.load.image('objectMask', 'assets/sprites/object mask.png');
-        this.load.image('keyMask', 'assets/sprites/keyMask.png');
-        this.load.image('doorMask', 'assets/sprites/doorMask.png');
-        this.load.image('hintMask', 'assets/sprites/hintMask.png');
-
-        this.load.image('testplateShown', 'assets/sprites/closePlate.png');
-        this.load.image('testplateIcon', 'assets/sprites/icon - plate.png');
     }
 
     create() {
@@ -366,6 +259,17 @@ class PlayGame extends Phaser.Scene {
             if (slots.inventoryViewObj == "objPlate" && viewWall == 5) {
                 foundHalfKey = true;
             }
+            if (slots.inventoryViewObj == "objRoach" && viewWall == 5) {
+                if (recorderMode == "replay") {
+                    recorder.setMode("idle")
+                    recorderMode = "idle";
+                } else {
+                    console.log("RECORD IT! mode was " + recorderMode);
+                    recorder.setMode("record")
+                    window.location.reload();
+                }
+            }
+
             slots.inventoryView = true;
         });
 
@@ -376,8 +280,10 @@ class PlayGame extends Phaser.Scene {
             snagged = true;
             haveHalfKey = true;
 
-            slots.addIcon(this, icons[3].toString(), obj[3], altObj[3]); // TODO: get name from sprite?!
+            slots.addIcon(this, icons[3].toString(), obj[3], altObj[3]); // TODO: get name from sprite!!
         });
+
+        slots.addIcon(this, icons[6].toString(), obj[6], altObj[6], 5); // TODO: get name from sprite?!
 
         // Debug recorder debugger
         viewportText = this.add.text(10, 10, '');
@@ -416,46 +322,6 @@ class PlayGame extends Phaser.Scene {
         */
     }
 
-    /* 
-        handleKey(e) {
-            var timeKey = this.time.now;
-            console.log(`key: ${timeKey} code ${e.code}`);
-            // The escape game doesn't use keyboard input for anything but recording, yet!
-
-            // if (e.code != "KeyX" && e.code != "Backslash" && e.code != "Backquote" && e.code != "Minus") {
-            //     if (this.simulator.getMode() == "record")
-            //        this.simulator.record(timeKey, e.code);
-            //    this.doKey(e.code);
-            // } else {
-                       
-                switch (e.code) {
-                    case "Backquote":
-                        console.log("begin recording");
-                        this.simulator.reset();
-                        this.simulator.setMode("record");
-                        window.location.reload(false);
-                        break;
-                    case "KeyX":
-                        console.log("stop recording");
-                        this.simulator.putRecording();
-                        this.simulator.setMode("play");
-                        //window.location.reload(false);
-                        break;
-                    case "Minus":
-                        console.log("replay recording");
-                        this.simulator.setMode("play-perfect");
-                        window.location.reload(false);
-                        break;
-                    case "Backslash":
-                        console.log("quit replay");
-                        this.simulator.setMode("idle");
-                        break;
-                }
-            }
-                        
-        }
-        */
-
     handleKey(event: KeyboardEvent) {
         if (event.key == lastKeyDebouncer)
             return;
@@ -477,63 +343,28 @@ class PlayGame extends Phaser.Scene {
                 console.log("quit recorder");
                 recorder.setMode("idle")
                 recorderMode = "idle";
+                viewportText.setDepth(-1);
                 //window.location.reload();
                 break;
         }
     }
 
     update() {
-
-        //this.input.keyboard.on("keyup", this.handleKey, this);
-        //this.input.keyboard.on('keyup', this.tsKey(), this);
-
-        /*        
-                this.input.keyboard.on('keyup', function (event) {
-        
-                    if (event.keyCode === 37)
-                    {
-                        //  left
-                        if (cursor.x > 0)
-                        {
-                            cursor.x--;
-                            block.x -= 52;
-                        }
-                    }
-                    else if (event.keyCode === 39)
-                    {
-                        //  right
-                        if (cursor.x < 9)
-                        {
-                            cursor.x++;
-                            block.x += 52;
-                        }
-                    }        
-        */
-        /*
-                this.input.keyboard.on('keyup', function (event: KeyboardEvent) {
-                    //console.log(event);
-                    //console.log(event.key);
-                    if (event.key != lastKeyDebouncer) {
-                        console.log("FIRE " + event.key)
-                        lastKeyDebouncer = event.key;
-                    }
-                });
-        */
         this.input.keyboard.on('keydown', this.handleKey);
 
-
-
-
-        //console.dir(this);
-
-
-        viewportText.setText([
-            'x: ' + pointer.worldX,
-            'y: ' + pointer.worldY,
-            'rightButtonDown: ' + pointer.rightButtonDown(),
-            'isDown: ' + pointer.isDown,
-            'time: ' + this.time.now
-        ]);
+        if (debugging || recorderMode == "record" || recorderMode == "replay") {
+            let debugAction = "RECORDING";
+            if (recorderMode == "replay")
+                debugAction = "REPLAY"
+            viewportText.setText([
+                'x: ' + pointer.worldX,
+                'y: ' + pointer.worldY,
+                'rightButtonDown: ' + pointer.rightButtonDown(),
+                'isDown: ' + pointer.isDown,
+                '',
+                debugAction + '  time: ' + Math.floor(this.time.now)
+            ]);
+        }
         if (recorderMode == "record") {
             recorder.fixPointer(this.input.activePointer)
             recorder.checkPointer(this);
@@ -551,13 +382,11 @@ class PlayGame extends Phaser.Scene {
                     viewportPointer.setX(actions[0][1]);
                     viewportPointer.setY(actions[0][2]);
                 } else {
-
-                    console.log("GOGO " + actions[0][0]);
                     let target = actions[0][0];
                     let targetType = target.split('=')[0];
                     let targetObject = target.split('=')[1];
                     if (targetType == "object") {
-                        console.log("do object " + targetObject);
+                        //console.log("do object " + targetObject);
                         //elsewhere
                         switch (targetObject) {
                             case "right": {
@@ -593,7 +422,7 @@ class PlayGame extends Phaser.Scene {
                                 break;
                             }
 
-                           
+
                             default: {
                                 console.log("WHAT IS? " + targetObject);
                             }
@@ -610,6 +439,7 @@ class PlayGame extends Phaser.Scene {
                 if (actions.length == 0) {
                     console.log("recorder EOJ")
                     recorderMode = "idle";
+                    viewportText.setDepth(-1);
                     recordingEndedFadeClicks = 20;
                 } else {
                     nextActionTime += actions[0][3];
@@ -655,6 +485,18 @@ class PlayGame extends Phaser.Scene {
             } else {
                 this.add.image(0, 0, slots.inventoryViewObj).setOrigin(0, 0);
                 viewWall = 5; currentWall = 5;
+                console.log("IDLE IT? OR REPLAY");
+                if (slots.inventoryViewObj == "objRoach") {
+                    if (recorderMode == "record") {
+                        recorder.setMode("replay");
+                        console.log("NOW RELOAD")
+                        window.location.reload();
+                    } else {
+                        recorder.setMode("idle")
+                        recorderMode = "idle";
+                        viewportText.setDepth(-1);
+                    }
+                }
             }
             flipIt = false;
 
@@ -767,7 +609,124 @@ class PlayGame extends Phaser.Scene {
             objectMask.setVisible(false);
         }
     }
+    preload() {
+        this.load.image('myViewport', 'assets/backgrounds/viewport.png');
+        this.load.image('clckrLoc', 'assets/sprites/pointer.png');
+        this.load.image('clckrClk', 'assets/sprites/pointerClicked.png');
+
+        this.load.image('wall1', 'assets/backgrounds/invroom - room - empty.png');
+        this.load.image('wall2', 'assets/backgrounds/invroom - room - west.png');
+        this.load.image('wall3', 'assets/backgrounds/invroom - room - south.png');
+        this.load.image('wall4', 'assets/backgrounds/invroom - room - east.png');
+        this.load.image('wallUnlocked', 'assets/backgrounds/invroom - room - unlocked.png');
+        this.load.image('wallWinner', 'assets/backgrounds/invroom - room - winner.png');
+
+        walls[0] = "wall1";
+        walls[1] = "wall2";
+        walls[2] = "wall3";
+        walls[3] = "wall4";
+        walls[4] = "table";
+        walls[5] = "(item view)";
+        walls[6] = "(item view alt)";
+        walls[7] = "wallUnlocked";
+        walls[8] = "wallWinner";
+
+        this.load.image('table', 'assets/backgrounds/invroom - table - empty.png');
+
+        this.load.image('right', 'assets/sprites/arrowRight.png');
+        this.load.image('left', 'assets/sprites/arrowLeft.png');
+        this.load.image('down', 'assets/sprites/arrowDown.png');
+        this.load.image('plus', 'assets/sprites/plus.png');
+        this.load.image('fail', 'assets/sprites/fail.png');
+        this.load.image('winnerDonut', 'assets/sprites/winner donutPlated.png');
+
+        this.load.image('inventory', 'assets/sprites/inventory cells.png');
+
+        this.load.image('iconEmpty', 'assets/sprites/icon - empty.png');
+        this.load.image('iconSelected', 'assets/sprites/icon - selected.png');
+        this.load.image('iconSelectedSecond', 'assets/sprites/icon - selectedSecond.png');
+
+        this.load.image('iconDonut', 'assets/sprites/icon - donut.png');
+        this.load.image('iconPlate', 'assets/sprites/icon - plate.png');
+        this.load.image('iconKeyA', 'assets/sprites/icon - keyA.png');
+        this.load.image('iconKeyB', 'assets/sprites/icon - keyB.png');
+        this.load.image('iconKeyWhole', 'assets/sprites/icon - keyWhole.png');
+        this.load.image('iconDonutPlated', 'assets/sprites/icon - donutPlated.png');
+        this.load.image('iconRoach', 'assets/sprites/icon - roach.png');
+
+        icons[0] = "iconDonut";
+        icons[1] = "iconPlate";
+        icons[2] = "iconKeyB";
+        icons[3] = "iconKeyA";
+        icons[4] = "iconKeyWhole";
+        icons[5] = "iconDonutPlated";
+        icons[6] = "iconRoach";
+
+        this.load.image('objDonut', 'assets/backgrounds/invroom - obj - donut.png');
+        this.load.image('objPlate', 'assets/backgrounds/invroom - obj - plate.png');
+        this.load.image('objKeyA', 'assets/backgrounds/invroom - obj - keyA.png');
+        this.load.image('objKeyB', 'assets/backgrounds/invroom - obj - keyB.png');
+        this.load.image('objKeyWhole', 'assets/backgrounds/invroom - obj - keyWhole.png');
+        this.load.image('objDonutPlated', 'assets/backgrounds/invroom - obj - donutPlated.png');
+        this.load.image('objRoach', 'assets/backgrounds/invroom - obj - roach.png');
+
+        obj[0] = "objDonut";
+        obj[1] = "objPlate";
+        obj[2] = "objKeyB";
+        obj[3] = "objKeyA";
+        obj[4] = "objKeyWhole";
+        obj[5] = "objDonutPlated";
+        obj[6] = "objRoach";
+
+        this.load.image('altobjDonut', 'assets/backgrounds/invroom - altobj - donut.png');
+        this.load.image('altobjPlateKey', 'assets/backgrounds/invroom - altobj - plate key.png');
+        this.load.image('altobjKeyA', 'assets/backgrounds/invroom - altobj - keyA.png');
+        this.load.image('altobjKeyB', 'assets/backgrounds/invroom - altobj - keyB.png');
+        this.load.image('altobjKeyWhole', 'assets/backgrounds/invroom - altobj - keyWhole.png');
+        this.load.image('altobjDonutPlated', 'assets/backgrounds/invroom - altobj - donutPlated.png');
+        this.load.image('altobjRoach', 'assets/backgrounds/invroom - altobj - roach.png');
+
+        this.load.image('altobjPlateEmpty', 'assets/backgrounds/invroom - altobj - plate empty.png');
+        altObj[0] = "altobjDonut";
+        altObj[1] = "altobjPlateKey";
+        altObj[2] = "altobjKeyB";
+        altObj[3] = "altobjKeyA";
+        altObj[4] = "altobjKeyWhole";
+        altObj[5] = "altobjDonutPlated";
+        altObj[6] = "altobjRoach";
+
+        this.load.image('tableDonut', 'assets/sprites/tableDonut.png');
+        this.load.image('tablePlate', 'assets/sprites/tablePlate.png');
+        this.load.image('tableKey', 'assets/sprites/tableKey.png');
+        this.load.image('tableEmpty', 'assets/sprites/tableEmpty.png');
+        tableView[0] = "tableDonut";
+        tableView[1] = "tablePlate";
+        tableView[2] = "tableKey";
+        tableView[3] = "tableEmpty";
+
+        this.load.image('closeDonut', 'assets/sprites/closeDonut.png');
+        this.load.image('closePlate', 'assets/sprites/closePlate.png');
+        this.load.image('closeKey', 'assets/sprites/closeKey.png');
+        this.load.image('closeEmpty', 'assets/sprites/closeEmpty.png');
+        closeView[0] = "closeDonut"
+        closeView[1] = "closePlate"
+        closeView[2] = "closeKey"
+        closeView[3] = "closeEmpty"
+
+        this.load.image('tableMask', 'assets/sprites/tableMask.png');
+        this.load.image('takeMask', 'assets/sprites/takeMask.png');
+        this.load.image('objectMask', 'assets/sprites/object mask.png');
+        this.load.image('keyMask', 'assets/sprites/keyMask.png');
+        this.load.image('doorMask', 'assets/sprites/doorMask.png');
+        this.load.image('hintMask', 'assets/sprites/hintMask.png');
+
+        this.load.image('testplateShown', 'assets/sprites/closePlate.png');
+        this.load.image('testplateIcon', 'assets/sprites/icon - plate.png');
+    }
+
+
 }
+
 
 let config = {
     type: Phaser.AUTO,
